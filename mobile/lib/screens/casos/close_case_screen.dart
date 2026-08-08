@@ -4,6 +4,7 @@ import '../../data/api_client.dart';
 import '../../data/models/animal.dart';
 import '../../data/repositories/animal_repository.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/app_snackbar.dart';
 import '../../widgets/petfind_header.dart';
 import '../../widgets/status_chip.dart';
 
@@ -27,11 +28,11 @@ class _CloseCaseScreenState extends State<CloseCaseScreen> {
     try {
       await _repository.encerrarCaso(widget.animal.id);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Que ótimo! Seu amigo está de volta!')));
+      showAppSnackBar(context, 'Que ótimo! Seu amigo está de volta!', type: AppSnackType.success);
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(extractErrorMessage(e))));
+      showAppSnackBar(context, extractErrorMessage(e), type: AppSnackType.error);
     } finally {
       if (mounted) setState(() => _carregando = false);
     }
@@ -53,7 +54,7 @@ class _CloseCaseScreenState extends State<CloseCaseScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [Color(0xFF4CC26E), Color(0xFF34A853)]),
+                gradient: const LinearGradient(colors: AppTheme.successGradient),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: const Column(
@@ -78,9 +79,9 @@ class _CloseCaseScreenState extends State<CloseCaseScreen> {
                 children: [
                   CircleAvatar(
                     radius: 26,
-                    backgroundColor: AppTheme.primary.withValues(alpha: 0.12),
+                    backgroundColor: AppTheme.primaryStrong.withValues(alpha: 0.12),
                     backgroundImage: animal.fotoUrlCompleta != null ? NetworkImage(animal.fotoUrlCompleta!) : null,
-                    child: animal.fotoUrlCompleta == null ? const Icon(Icons.pets, color: AppTheme.primaryDark) : null,
+                    child: animal.fotoUrlCompleta == null ? const Icon(Icons.pets, color: AppTheme.primaryStrong) : null,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -88,7 +89,7 @@ class _CloseCaseScreenState extends State<CloseCaseScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(animal.nome, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                        Text('Desaparecido há $dias dias • ${widget.totalAvistamentos} avistamentos', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                        Text('Desaparecido há $dias dias • ${widget.totalAvistamentos} avistamentos', style: Theme.of(context).textTheme.bodySmall),
                         const SizedBox(height: 4),
                         StatusChip(status: animal.status),
                       ],
@@ -114,7 +115,7 @@ class _CloseCaseScreenState extends State<CloseCaseScreen> {
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: _carregando ? null : _confirmarEncerramento,
-              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.success),
+              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.successStrong),
               icon: _carregando ? null : const Icon(Icons.check_circle_outline),
               label: _carregando
                   ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
@@ -126,7 +127,7 @@ class _CloseCaseScreenState extends State<CloseCaseScreen> {
               child: const Text('Manter caso ativo'),
             ),
             const SizedBox(height: 6),
-            const Text('Esta ação encerrará os alertas e notificará a comunidade', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 12)),
+            Text('Esta ação encerrará os alertas e notificará a comunidade', textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodySmall),
           ],
         ),
       ),
@@ -138,7 +139,7 @@ class _CloseCaseScreenState extends State<CloseCaseScreen> {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          Icon(icone, size: 18, color: AppTheme.primaryDark),
+          Icon(icone, size: 18, color: AppTheme.primaryStrong),
           const SizedBox(width: 10),
           Expanded(child: Text(texto, style: const TextStyle(fontSize: 13))),
         ],

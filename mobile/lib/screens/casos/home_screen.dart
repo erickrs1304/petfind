@@ -5,6 +5,7 @@ import '../../providers/animal_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/case_card.dart';
 import '../../widgets/petfind_header.dart';
+import '../../widgets/state_views.dart';
 import 'case_detail_screen.dart';
 import 'create_case_screen.dart';
 
@@ -115,7 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: ChoiceChip(
         label: Text(label),
         selected: selecionado,
-        selectedColor: AppTheme.primary,
+        selectedColor: AppTheme.primaryStrong,
         labelStyle: TextStyle(color: selecionado ? Colors.white : Colors.black87, fontWeight: FontWeight.w600),
         backgroundColor: AppTheme.surfaceCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide.none),
@@ -129,22 +130,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _conteudo(AnimalProvider provider) {
     if (provider.carregando && provider.casos.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const LoadingView();
     }
     if (provider.erro != null) {
-      return Center(child: Text(provider.erro!));
+      return ErrorView(message: provider.erro!, onRetry: _carregar);
     }
     if (provider.casos.isEmpty) {
-      return ListView(
-        padding: const EdgeInsets.all(24),
-        children: const [
-          SizedBox(height: 48),
-          Icon(Icons.search_off, size: 64, color: Colors.grey),
-          SizedBox(height: 16),
-          Text('Nenhum animal perdido encontrado nesta região.', textAlign: TextAlign.center),
-          SizedBox(height: 8),
-          Text('Puxe para atualizar ou tente novamente mais tarde.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
-        ],
+      return EmptyView(
+        icon: Icons.search_off,
+        title: 'Nenhum animal perdido encontrado nesta região',
+        subtitle: 'Puxe para atualizar ou seja o primeiro a cadastrar um caso.',
+        actionLabel: 'Cadastrar caso',
+        onAction: _novoCaso,
       );
     }
     return ListView.separated(

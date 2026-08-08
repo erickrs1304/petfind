@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../data/api_client.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/app_snackbar.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/petfind_header.dart';
 
@@ -80,9 +81,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             lng: lng,
           );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cadastro realizado com sucesso!')),
-      );
+      showAppSnackBar(context, 'Cadastro realizado com sucesso!', type: AppSnackType.success);
       Navigator.of(context).pop();
     } catch (e) {
       setState(() => _erro = extractErrorMessage(e, fallback: 'Não foi possível concluir o cadastro.'));
@@ -100,11 +99,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
+          autovalidateMode: AutovalidateMode.onUnfocus,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (_erro != null) ...[
-                Text(_erro!, style: const TextStyle(color: AppTheme.danger)),
+                Text(_erro!, style: const TextStyle(color: AppTheme.dangerStrong)),
                 const SizedBox(height: 12),
               ],
               const SectionLabel('Dados pessoais'),

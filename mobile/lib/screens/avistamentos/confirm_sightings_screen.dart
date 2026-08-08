@@ -6,7 +6,9 @@ import '../../data/models/avistamento.dart';
 import '../../data/repositories/animal_repository.dart';
 import '../../data/repositories/sighting_repository.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/app_snackbar.dart';
 import '../../widgets/petfind_header.dart';
+import '../../widgets/state_views.dart';
 
 // RF-010 - Confirmar/Excluir Avistamento (Figura 13)
 class ConfirmSightingsScreen extends StatefulWidget {
@@ -37,7 +39,7 @@ class _ConfirmSightingsScreenState extends State<ConfirmSightingsScreen> {
       _pendentes = await _animalRepository.listarAvistamentos(widget.animal.id, status: 'PENDENTE');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(extractErrorMessage(e))));
+      showAppSnackBar(context, extractErrorMessage(e), type: AppSnackType.error);
     } finally {
       if (mounted) setState(() => _carregando = false);
     }
@@ -66,13 +68,11 @@ class _ConfirmSightingsScreenState extends State<ConfirmSightingsScreen> {
     try {
       await _sightingRepository.confirmar(avistamento.id, comentario: comentario);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Avistamento confirmado e adicionado à trajetória!')),
-      );
+      showAppSnackBar(context, 'Avistamento confirmado e adicionado à trajetória!', type: AppSnackType.success);
       _carregar();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(extractErrorMessage(e))));
+      showAppSnackBar(context, extractErrorMessage(e), type: AppSnackType.error);
     }
   }
 
@@ -85,7 +85,7 @@ class _ConfirmSightingsScreenState extends State<ConfirmSightingsScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancelar')),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppTheme.danger),
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.dangerStrong),
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Sim, excluir'),
           ),
@@ -97,11 +97,11 @@ class _ConfirmSightingsScreenState extends State<ConfirmSightingsScreen> {
     try {
       await _sightingRepository.excluir(avistamento.id);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Avistamento excluído com sucesso.')));
+      showAppSnackBar(context, 'Avistamento excluído com sucesso.', type: AppSnackType.success);
       _carregar();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(extractErrorMessage(e))));
+      showAppSnackBar(context, extractErrorMessage(e), type: AppSnackType.error);
     }
   }
 
@@ -111,9 +111,13 @@ class _ConfirmSightingsScreenState extends State<ConfirmSightingsScreen> {
       titulo: 'Avistamentos',
       subtitulo: 'Confirme ou exclua os registros pendentes',
       body: _carregando
-          ? const Center(child: CircularProgressIndicator())
+          ? const LoadingView()
           : _pendentes.isEmpty
-              ? const Center(child: Text('Nenhum avistamento pendente.'))
+              ? const EmptyView(
+                  icon: Icons.playlist_add_check_outlined,
+                  title: 'Nenhum avistamento pendente',
+                  subtitle: 'Avistamentos registrados por outras pessoas aparecerão aqui para você confirmar.',
+                )
               : RefreshIndicator(
                   onRefresh: _carregar,
                   child: ListView.separated(
@@ -126,7 +130,7 @@ class _ConfirmSightingsScreenState extends State<ConfirmSightingsScreen> {
                         decoration: BoxDecoration(
                           color: AppTheme.surfaceCard,
                           borderRadius: BorderRadius.circular(14),
-                          border: const Border(left: BorderSide(color: AppTheme.primary, width: 4)),
+                          border: const Border(left: BorderSide(color: AppTheme.primaryStrong, width: 4)),
                         ),
                         padding: const EdgeInsets.all(12),
                         child: Column(
@@ -150,7 +154,7 @@ class _ConfirmSightingsScreenState extends State<ConfirmSightingsScreen> {
                                       ),
                                       Text(
                                         'Hoje ${avistamento.dataHora.hour.toString().padLeft(2, '0')}:${avistamento.dataHora.minute.toString().padLeft(2, '0')}',
-                                        style: const TextStyle(color: Colors.grey, fontSize: 12),
+                                        style: Theme.of(context).textTheme.bodySmall,
                                       ),
                                     ],
                                   ),
@@ -174,13 +178,13 @@ class _ConfirmSightingsScreenState extends State<ConfirmSightingsScreen> {
                               children: [
                                 IconButton.filled(
                                   onPressed: () => _excluir(avistamento),
-                                  style: IconButton.styleFrom(backgroundColor: AppTheme.danger),
+                                  style: IconButton.styleFrom(backgroundColor: AppTheme.dangerStrong),
                                   icon: const Icon(Icons.delete_outline, color: Colors.white),
                                 ),
                                 const SizedBox(width: 8),
                                 IconButton.filled(
                                   onPressed: () => _confirmar(avistamento),
-                                  style: IconButton.styleFrom(backgroundColor: AppTheme.success),
+                                  style: IconButton.styleFrom(backgroundColor: AppTheme.successStrong),
                                   icon: const Icon(Icons.check, color: Colors.white),
                                 ),
                               ],

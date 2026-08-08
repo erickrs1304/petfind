@@ -7,8 +7,11 @@ import '../../data/models/animal.dart';
 import '../../data/models/picked_photo.dart';
 import '../../data/repositories/animal_repository.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/location_helper.dart';
+import '../../widgets/app_snackbar.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/dashed_photo_picker.dart';
+import '../../widgets/location_capture_card.dart';
 import '../../widgets/petfind_header.dart';
 import '../../widgets/status_chip.dart';
 
@@ -44,23 +47,10 @@ class _RegisterSightingScreenState extends State<RegisterSightingScreen> {
       _erro = null;
     });
     try {
-      final habilitado = await Geolocator.isLocationServiceEnabled();
-      if (!habilitado) throw Exception('gps-desativado');
-
-      var permissao = await Geolocator.checkPermission();
-      if (permissao == LocationPermission.denied) {
-        permissao = await Geolocator.requestPermission();
-      }
-      if (permissao == LocationPermission.denied || permissao == LocationPermission.deniedForever) {
-        throw Exception('permissao-negada');
-      }
-
-      final posicao = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-      );
+      final posicao = await obterLocalizacaoAtual();
       setState(() => _posicao = posicao);
-    } catch (_) {
-      setState(() => _erro = 'Não foi possível obter sua localização. Ative o GPS e tente novamente.');
+    } on LocalizacaoException catch (e) {
+      setState(() => _erro = e.message);
     } finally {
       if (mounted) setState(() => _obtendoLocalizacao = false);
     }
@@ -92,9 +82,7 @@ class _RegisterSightingScreenState extends State<RegisterSightingScreen> {
         foto: _foto,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Avistamento registrado! O tutor será notificado.')),
-      );
+      showAppSnackBar(context, 'Avistamento registrado! O tutor será notificado.', type: AppSnackType.success);
       Navigator.of(context).pop(true);
     } catch (e) {
       setState(() => _erro = extractErrorMessage(e, fallback: 'Não foi possível registrar o avistamento.'));
@@ -105,7 +93,6 @@ class _RegisterSightingScreenState extends State<RegisterSightingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final agora = TimeOfDay.now();
     return PetFindScaffold(
       titulo: 'Vi Este Animal',
       subtitulo: 'Registrar avistamento',
@@ -121,9 +108,9 @@ class _RegisterSightingScreenState extends State<RegisterSightingScreen> {
                 children: [
                   CircleAvatar(
                     radius: 26,
-                    backgroundColor: AppTheme.primary.withValues(alpha: 0.12),
+                    backgroundColor: AppTheme.primaryStrong.withValues(alpha: 0.12),
                     backgroundImage: widget.animal.fotoUrlCompleta != null ? NetworkImage(widget.animal.fotoUrlCompleta!) : null,
-                    child: widget.animal.fotoUrlCompleta == null ? const Icon(Icons.pets, color: AppTheme.primaryDark) : null,
+                    child: widget.animal.fotoUrlCompleta == null ? const Icon(Icons.pets, color: AppTheme.primaryStrong) : null,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -134,7 +121,7 @@ class _RegisterSightingScreenState extends State<RegisterSightingScreen> {
                         Text(
                           [widget.animal.especie, if (widget.animal.porte != null) 'Porte ${widget.animal.porte}', if (widget.animal.raca != null) widget.animal.raca!]
                               .join(' • '),
-                          style: const TextStyle(color: Colors.grey, fontSize: 12),
+                          style: Theme.of(context).textTheme.bodySmall,
                         ),
                         const SizedBox(height: 4),
                         StatusChip(status: widget.animal.status),
@@ -146,55 +133,11 @@ class _RegisterSightingScreenState extends State<RegisterSightingScreen> {
             ),
             const SizedBox(height: 20),
             const SectionLabel('Localização capturada'),
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(color: AppTheme.surfaceCard, borderRadius: BorderRadius.circular(16)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (_erro != null) ...[
-                    Text(_erro!, style: const TextStyle(color: AppTheme.danger)),
-                    const SizedBox(height: 8),
-                    OutlinedButton(onPressed: _obterLocalizacao, child: const Text('Tentar novamente')),
-                    const SizedBox(height: 8),
-                  ] else ...[
-                    Row(children: [
-                      const Icon(Icons.location_on, color: AppTheme.primaryDark, size: 18),
-                      const SizedBox(width: 8),
-                      Text(_obtendoLocalizacao ? 'Obtendo localização...' : 'GPS capturado automaticamente', style: const TextStyle(fontSize: 13)),
-                    ]),
-                    const SizedBox(height: 6),
-                    if (_posicao != null)
-                      Row(children: [
-                        const Icon(Icons.public, color: Colors.blueGrey, size: 18),
-                        const SizedBox(width: 8),
-                        Text('${_posicao!.latitude.toStringAsFixed(4)}° S, ${_posicao!.longitude.toStringAsFixed(4)}° O', style: const TextStyle(fontSize: 13)),
-                      ]),
-                    const SizedBox(height: 6),
-                    Row(children: [
-                      const Icon(Icons.access_time, color: Colors.blueGrey, size: 18),
-                      const SizedBox(width: 8),
-                      Text('Hoje, ${agora.format(context)}', style: const TextStyle(fontSize: 13)),
-                    ]),
-                    if (_posicao != null) ...[
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        decoration: BoxDecoration(color: AppTheme.success, borderRadius: BorderRadius.circular(24)),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.check, color: Colors.white, size: 16),
-                            SizedBox(width: 6),
-                            Text('Localização confirmada', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ],
-                  if (_obtendoLocalizacao) const Padding(padding: EdgeInsets.only(top: 8), child: LinearProgressIndicator()),
-                ],
-              ),
+            LocationCaptureCard(
+              obtendo: _obtendoLocalizacao,
+              posicao: _posicao,
+              erro: _erro,
+              onRetry: _obterLocalizacao,
             ),
             const SizedBox(height: 20),
             const SectionLabel('Foto do avistamento (opcional)'),
@@ -217,7 +160,11 @@ class _RegisterSightingScreenState extends State<RegisterSightingScreen> {
                   : const Text('Confirmar Avistamento'),
             ),
             const SizedBox(height: 6),
-            const Text('O tutor será notificado imediatamente', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 12)),
+            Text(
+              'O tutor será notificado imediatamente',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           ],
         ),
       ),

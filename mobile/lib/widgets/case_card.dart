@@ -47,9 +47,9 @@ class CaseCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 28,
-                backgroundColor: AppTheme.primary.withValues(alpha: 0.12),
+                backgroundColor: AppTheme.primaryStrong.withValues(alpha: 0.12),
                 backgroundImage: animal.fotoUrlCompleta != null ? NetworkImage(animal.fotoUrlCompleta!) : null,
-                child: animal.fotoUrlCompleta == null ? Icon(_iconeEspecie, color: AppTheme.primaryDark) : null,
+                child: animal.fotoUrlCompleta == null ? Icon(_iconeEspecie, color: AppTheme.primaryStrong) : null,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -65,14 +65,14 @@ class CaseCard extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 2),
-                    Text(_subtitulo, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                    Text(_subtitulo, style: const TextStyle(color: AppTheme.textMuted, fontSize: 13)),
                     const SizedBox(height: 6),
                     if (animal.distanciaKm != null)
                       Text(
                         '${animal.distanciaKm!.toStringAsFixed(1)} km de você',
-                        style: const TextStyle(color: AppTheme.primaryDark, fontWeight: FontWeight.w600, fontSize: 13),
+                        style: const TextStyle(color: AppTheme.primaryStrong, fontWeight: FontWeight.w600, fontSize: 13),
                       ),
-                    Text(_tempoDesaparecido, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                    Text(_tempoDesaparecido, style: Theme.of(context).textTheme.bodySmall),
                   ],
                 ),
               ),

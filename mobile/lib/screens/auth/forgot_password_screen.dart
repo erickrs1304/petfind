@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../data/api_client.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/app_snackbar.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/petfind_header.dart';
 
@@ -68,9 +69,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             confirmarNovaSenha: _confirmarNovaSenhaController.text,
           );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Senha redefinida com sucesso.')),
-      );
+      showAppSnackBar(context, 'Senha redefinida com sucesso.', type: AppSnackType.success);
       Navigator.of(context).pop();
     } catch (e) {
       setState(() => _erro = extractErrorMessage(e, fallback: 'Código inválido.'));
@@ -90,11 +89,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (_erro != null) ...[
-              Text(_erro!, style: const TextStyle(color: AppTheme.danger)),
+              Text(_erro!, style: const TextStyle(color: AppTheme.dangerStrong)),
               const SizedBox(height: 12),
             ],
             if (_mensagem != null) ...[
-              Text(_mensagem!, style: const TextStyle(color: AppTheme.success)),
+              Text(_mensagem!, style: const TextStyle(color: AppTheme.successStrong)),
               const SizedBox(height: 12),
             ],
             const SectionLabel('E-mail cadastrado'),

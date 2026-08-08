@@ -48,6 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
         padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
+          autovalidateMode: AutovalidateMode.onUnfocus,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -55,17 +56,17 @@ class _LoginScreenState extends State<LoginScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.pets, size: 32, color: AppTheme.primary),
+                  const Icon(Icons.pets, size: 32, color: AppTheme.primaryStrong),
                   const SizedBox(width: 8),
-                  Text('PetFind', style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: AppTheme.primary, fontWeight: FontWeight.bold)),
+                  Text('PetFind', style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: AppTheme.primaryStrong, fontWeight: FontWeight.bold)),
                 ],
               ),
               const SizedBox(height: 4),
-              const Text('Plataforma colaborativa para busca de pets', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+              Text('Plataforma colaborativa para busca de pets', textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodySmall),
               const SizedBox(height: 32),
               const SectionLabel('Suas credenciais'),
               if (_erro != null) ...[
-                Text(_erro!, style: const TextStyle(color: AppTheme.danger)),
+                Text(_erro!, style: const TextStyle(color: AppTheme.dangerStrong)),
                 const SizedBox(height: 12),
               ],
               AppTextField(
@@ -100,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 12),
               Row(children: [
                 const Expanded(child: Divider()),
-                Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text('ou', style: TextStyle(color: Colors.grey.shade500))),
+                Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text('ou', style: Theme.of(context).textTheme.bodySmall)),
                 const Expanded(child: Divider()),
               ]),
               const SizedBox(height: 12),

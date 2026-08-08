@@ -127,6 +127,11 @@ router.post('/:id/sightings', upload.single('foto'), async (req, res) => {
   if (animal.status !== 'ATIVO') {
     return res.status(400).json({ error: 'Este caso já foi encerrado. Não é possível registrar novos avistamentos.' });
   }
+  if (animal.usuarioId === req.userId) {
+    return res.status(403).json({
+      error: 'Você é o tutor deste animal. Se encontrou o animal, encerre o caso em vez de registrar um avistamento.',
+    });
+  }
 
   const parsed = sightingSchema.safeParse(req.body);
   if (!parsed.success) {

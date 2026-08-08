@@ -8,6 +8,7 @@ import '../../data/models/avistamento.dart';
 import '../../data/repositories/animal_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/petfind_header.dart';
+import '../../widgets/state_views.dart';
 
 // RF-007 - Visualizar Mapa (Figura 10): última localização, avistamentos
 // confirmados numerados e conectados cronologicamente por uma trajetória pontilhada.
@@ -74,9 +75,9 @@ class _MapScreenState extends State<MapScreen> {
       subtitulo: '${widget.animal.nome} • ${_confirmados.length} avistamentos',
       scrollable: false,
       body: _carregando
-          ? const Center(child: CircularProgressIndicator())
+          ? const LoadingView()
           : _erro != null
-              ? Center(child: Text(_erro!))
+              ? ErrorView(message: _erro!, onRetry: _carregar)
               : Stack(
                   children: [
                     FlutterMap(
@@ -91,14 +92,14 @@ class _MapScreenState extends State<MapScreen> {
                             point: centro,
                             radius: 5000,
                             useRadiusInMeter: true,
-                            color: AppTheme.primary.withValues(alpha: 0.08),
-                            borderColor: AppTheme.primary.withValues(alpha: 0.4),
+                            color: AppTheme.primaryStrong.withValues(alpha: 0.08),
+                            borderColor: AppTheme.primaryStrong.withValues(alpha: 0.4),
                             borderStrokeWidth: 1,
                           ),
                         ]),
                         if (pontosTrajetoria.length > 1)
                           PolylineLayer(polylines: [
-                            Polyline(points: pontosTrajetoria, color: AppTheme.primary, strokeWidth: 3, pattern: const StrokePattern.dotted()),
+                            Polyline(points: pontosTrajetoria, color: AppTheme.primaryStrong, strokeWidth: 3, pattern: const StrokePattern.dotted()),
                           ]),
                         MarkerLayer(markers: [
                           Marker(
@@ -106,7 +107,7 @@ class _MapScreenState extends State<MapScreen> {
                             width: 70,
                             height: 56,
                             alignment: Alignment.topCenter,
-                            child: _pinNumerado(1, AppTheme.danger, 'Última loc.'),
+                            child: _pinNumerado(1, AppTheme.dangerStrong, 'Última loc.'),
                           ),
                           for (var i = 0; i < _confirmados.length; i++)
                             Marker(
@@ -116,7 +117,7 @@ class _MapScreenState extends State<MapScreen> {
                               alignment: Alignment.topCenter,
                               child: GestureDetector(
                                 onTap: () => _mostrarDetalhesAvistamento(_confirmados[i]),
-                                child: _pinNumerado(i + 2, AppTheme.primary, 'Avist. ${i + 1}'),
+                                child: _pinNumerado(i + 2, AppTheme.primaryStrong, 'Avist. ${i + 1}'),
                               ),
                             ),
                         ]),
@@ -132,10 +133,10 @@ class _MapScreenState extends State<MapScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
-                              _legenda(AppTheme.danger, 'Última loc.'),
-                              _legenda(AppTheme.primary, 'Avistamentos'),
+                              _legenda(AppTheme.dangerStrong, 'Última loc.'),
+                              _legenda(AppTheme.primaryStrong, 'Avistamentos'),
                               Row(children: [
-                                Container(width: 16, height: 2, color: AppTheme.primary),
+                                Container(width: 16, height: 2, color: AppTheme.primaryStrong),
                                 const SizedBox(width: 4),
                                 const Text('Trajetória', style: TextStyle(fontSize: 11)),
                               ]),
@@ -145,14 +146,18 @@ class _MapScreenState extends State<MapScreen> {
                       ),
                     ),
                     if (_confirmados.isEmpty)
-                      Positioned(
+                      const Positioned(
                         left: 24,
                         right: 24,
                         top: 16,
                         child: Card(
                           child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Text('Nenhum avistamento confirmado ainda. Compartilhe para ajudar!', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade700)),
+                            padding: EdgeInsets.all(12),
+                            child: Text(
+                              'Nenhum avistamento confirmado ainda. Compartilhe para ajudar!',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: AppTheme.textMuted),
+                            ),
                           ),
                         ),
                       ),

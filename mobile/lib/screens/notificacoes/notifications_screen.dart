@@ -6,6 +6,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/petfind_header.dart';
+import '../../widgets/state_views.dart';
 import '../casos/case_detail_screen.dart';
 
 // RF-008 - Notificações por Proximidade (Figura 11)
@@ -28,9 +29,9 @@ class NotificationsScreen extends StatelessWidget {
   Color _corPorTipo(String tipo) {
     switch (tipo) {
       case 'NOVO_CASO':
-        return AppTheme.success;
+        return AppTheme.successStrong;
       case 'NOVO_AVISTAMENTO':
-        return AppTheme.primary;
+        return AppTheme.primaryStrong;
       case 'AVISTAMENTO_CONFIRMADO':
         return AppTheme.secondaryBadge;
       default:
@@ -62,11 +63,15 @@ class NotificationsScreen extends StatelessWidget {
           children: [
             const SectionLabel('Recentes'),
             if (provider.carregando && provider.notificacoes.isEmpty)
-              const Padding(padding: EdgeInsets.symmetric(vertical: 32), child: Center(child: CircularProgressIndicator()))
+              const Padding(padding: EdgeInsets.symmetric(vertical: 32), child: LoadingView())
             else if (provider.notificacoes.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 32),
-                child: Center(child: Text('Você ainda não tem notificações.', style: TextStyle(color: Colors.grey))),
+                child: EmptyView(
+                  icon: Icons.notifications_none,
+                  title: 'Você ainda não tem notificações',
+                  subtitle: 'Alertas de novos casos e avistamentos na sua região aparecerão aqui.',
+                ),
               )
             else
               ...provider.notificacoes.map((notificacao) => _cardNotificacao(context, provider, notificacao)),
@@ -118,7 +123,7 @@ class NotificationsScreen extends StatelessWidget {
           children: [
             Text(notificacao.mensagem),
             const SizedBox(height: 2),
-            Text(_tempoRelativo(notificacao.createdAt), style: const TextStyle(color: Colors.grey, fontSize: 11)),
+            Text(_tempoRelativo(notificacao.createdAt), style: const TextStyle(color: AppTheme.textMuted, fontSize: 11)),
           ],
         ),
         onTap: () async {

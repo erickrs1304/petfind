@@ -6,8 +6,11 @@ import '../../data/api_client.dart';
 import '../../data/models/picked_photo.dart';
 import '../../data/repositories/animal_repository.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/location_helper.dart';
+import '../../widgets/app_snackbar.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/dashed_photo_picker.dart';
+import '../../widgets/location_capture_card.dart';
 import '../../widgets/petfind_header.dart';
 
 // RF-004 - Manter Animal Perdido: cadastro (Figura 7)
@@ -31,8 +34,32 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
   String _especie = 'Cachorro';
   DateTime? _dataDesaparecimento;
   PickedPhoto? _foto;
+  Position? _posicao;
+  bool _obtendoLocalizacao = true;
   bool _carregando = false;
   String? _erro;
+  String? _erroLocalizacao;
+
+  @override
+  void initState() {
+    super.initState();
+    _obterLocalizacao();
+  }
+
+  Future<void> _obterLocalizacao() async {
+    setState(() {
+      _obtendoLocalizacao = true;
+      _erroLocalizacao = null;
+    });
+    try {
+      final posicao = await obterLocalizacaoAtual();
+      setState(() => _posicao = posicao);
+    } on LocalizacaoException catch (e) {
+      setState(() => _erroLocalizacao = e.message);
+    } finally {
+      if (mounted) setState(() => _obtendoLocalizacao = false);
+    }
+  }
 
   Future<void> _selecionarData() async {
     final data = await showDatePicker(
@@ -70,6 +97,10 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
       setState(() => _erro = 'Informe a última localização do animal.');
       return;
     }
+    if (_posicao == null) {
+      setState(() => _erro = 'Não foi possível obter sua localização. Ative o GPS e tente novamente.');
+      return;
+    }
 
     setState(() {
       _carregando = true;
@@ -77,10 +108,6 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
     });
 
     try {
-      final posicao = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-      );
-
       await _repository.criar(
         nome: _nomeController.text.trim(),
         especie: _especie,
@@ -89,13 +116,13 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
         caracteristicas: _caracteristicasController.text.trim(),
         dataDesaparecimento: _dataDesaparecimento!,
         ultimaLocalizacaoTexto: _localizacaoController.text.trim(),
-        lat: posicao.latitude,
-        lng: posicao.longitude,
+        lat: _posicao!.latitude,
+        lng: _posicao!.longitude,
         foto: _foto,
       );
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Caso cadastrado com sucesso!')));
+      showAppSnackBar(context, 'Caso cadastrado com sucesso!', type: AppSnackType.success);
       Navigator.of(context).pop(true);
     } catch (e) {
       setState(() => _erro = extractErrorMessage(e, fallback: 'Não foi possível registrar o caso.'));
@@ -113,15 +140,15 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
           margin: const EdgeInsets.symmetric(horizontal: 4),
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: selecionado ? AppTheme.primary.withValues(alpha: 0.12) : AppTheme.surfaceCard,
-            border: Border.all(color: selecionado ? AppTheme.primary : Colors.transparent, width: 1.4),
+            color: selecionado ? AppTheme.primaryStrong.withValues(alpha: 0.12) : AppTheme.surfaceCard,
+            border: Border.all(color: selecionado ? AppTheme.primaryStrong : Colors.transparent, width: 1.4),
             borderRadius: BorderRadius.circular(24),
           ),
           child: Column(
             children: [
-              Icon(icone, color: selecionado ? AppTheme.primaryDark : Colors.grey),
+              Icon(icone, color: selecionado ? AppTheme.primaryStrong : Colors.grey),
               const SizedBox(height: 2),
-              Text(valor, style: TextStyle(color: selecionado ? AppTheme.primaryDark : Colors.black87, fontWeight: FontWeight.w600)),
+              Text(valor, style: TextStyle(color: selecionado ? AppTheme.primaryStrong : Colors.black87, fontWeight: FontWeight.w600)),
             ],
           ),
         ),
@@ -138,11 +165,12 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
         padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
+          autovalidateMode: AutovalidateMode.onUnfocus,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (_erro != null) ...[
-                Text(_erro!, style: const TextStyle(color: AppTheme.danger)),
+                Text(_erro!, style: const TextStyle(color: AppTheme.dangerStrong)),
                 const SizedBox(height: 12),
               ],
               const SectionLabel('Sobre o animal'),
@@ -186,7 +214,7 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
                     _dataDesaparecimento == null
                         ? 'dd/mm/aaaa'
                         : '${_dataDesaparecimento!.day.toString().padLeft(2, '0')}/${_dataDesaparecimento!.month.toString().padLeft(2, '0')}/${_dataDesaparecimento!.year}',
-                    style: TextStyle(color: _dataDesaparecimento == null ? Colors.grey.shade500 : Colors.black87),
+                    style: TextStyle(color: _dataDesaparecimento == null ? AppTheme.textMuted : Colors.black87),
                   ),
                 ),
               ),
@@ -198,15 +226,22 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
                 validator: (v) => (v == null || v.isEmpty) ? 'Informe a última localização do animal.' : null,
               ),
               const Padding(
-                padding: EdgeInsets.only(top: 6),
+                padding: EdgeInsets.only(top: 6, bottom: 12),
                 child: Text(
-                  'Sua posição GPS atual também será registrada como coordenada do desaparecimento.',
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                  'Referência legível — a coordenada GPS exata é capturada abaixo.',
+                  style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
                 ),
+              ),
+              LocationCaptureCard(
+                obtendo: _obtendoLocalizacao,
+                posicao: _posicao,
+                erro: _erroLocalizacao,
+                onRetry: _obterLocalizacao,
+                tituloOk: 'GPS capturado — este é o ponto do desaparecimento',
               ),
               const SizedBox(height: 24),
               ElevatedButton.icon(
-                onPressed: _carregando ? null : _salvar,
+                onPressed: (_carregando || _posicao == null) ? null : _salvar,
                 icon: _carregando ? null : const Icon(Icons.campaign_outlined),
                 label: _carregando
                     ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))

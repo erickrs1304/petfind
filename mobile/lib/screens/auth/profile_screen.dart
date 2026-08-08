@@ -5,6 +5,7 @@ import '../../data/api_client.dart';
 import '../../data/models/usuario.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/app_snackbar.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/petfind_header.dart';
 
@@ -49,7 +50,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
       if (!mounted) return;
       setState(() => _editando = false);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Perfil atualizado com sucesso.')));
+      showAppSnackBar(context, 'Perfil atualizado com sucesso.', type: AppSnackType.success);
     } catch (e) {
       setState(() => _erro = extractErrorMessage(e));
     } finally {
@@ -76,10 +77,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const SizedBox(height: 8),
-            const CircleAvatar(radius: 40, backgroundColor: Color(0x1FFF7A45), child: Icon(Icons.person, size: 40, color: AppTheme.primaryDark)),
+            const CircleAvatar(radius: 40, backgroundColor: Color(0x1FFF7A45), child: Icon(Icons.person, size: 40, color: AppTheme.primaryStrong)),
             const SizedBox(height: 24),
             if (_erro != null) ...[
-              Text(_erro!, style: const TextStyle(color: AppTheme.danger)),
+              Text(_erro!, style: const TextStyle(color: AppTheme.dangerStrong)),
               const SizedBox(height: 12),
             ],
             if (_editando) ..._camposEdicao() else ..._camposLeitura(usuario),
@@ -114,8 +115,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(color: AppTheme.surfaceCard, borderRadius: BorderRadius.circular(14)),
       child: ListTile(
-        leading: Icon(icone, color: AppTheme.primaryDark),
-        title: Text(rotulo, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        leading: Icon(icone, color: AppTheme.primaryStrong),
+        title: Text(rotulo, style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
         subtitle: Text(valor),
       ),
     );

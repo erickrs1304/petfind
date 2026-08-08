@@ -44,12 +44,12 @@ class DashedPhotoPicker extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 20,
-                      backgroundColor: AppTheme.primary.withValues(alpha: 0.15),
-                      child: const Icon(Icons.camera_alt_outlined, color: AppTheme.primary),
+                      backgroundColor: AppTheme.primaryStrong.withValues(alpha: 0.15),
+                      child: const Icon(Icons.camera_alt_outlined, color: AppTheme.primaryStrong),
                     ),
                     const SizedBox(height: 8),
-                    Text(texto, style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600)),
-                    const Text('Toque para selecionar', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                    Text(texto, style: const TextStyle(color: AppTheme.primaryStrong, fontWeight: FontWeight.w600)),
+                    Text('Toque para selecionar', style: Theme.of(context).textTheme.bodySmall),
                   ],
                 )
               : null,
