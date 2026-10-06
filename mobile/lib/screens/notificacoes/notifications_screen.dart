@@ -5,6 +5,7 @@ import '../../data/models/notificacao.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/formatters.dart';
 import '../../widgets/petfind_header.dart';
 import '../../widgets/state_views.dart';
 import '../casos/case_detail_screen.dart';
@@ -21,6 +22,8 @@ class NotificationsScreen extends StatelessWidget {
         return Icons.location_pin;
       case 'AVISTAMENTO_CONFIRMADO':
         return Icons.notifications_active;
+      case 'CASO_ENCERRADO':
+        return Icons.celebration_outlined;
       default:
         return Icons.notifications;
     }
@@ -34,17 +37,11 @@ class NotificationsScreen extends StatelessWidget {
         return AppTheme.primaryStrong;
       case 'AVISTAMENTO_CONFIRMADO':
         return AppTheme.secondaryBadge;
+      case 'CASO_ENCERRADO':
+        return AppTheme.successStrong;
       default:
         return Colors.grey;
     }
-  }
-
-  String _tempoRelativo(DateTime data) {
-    final diff = DateTime.now().difference(data);
-    if (diff.inMinutes < 1) return 'Agora mesmo';
-    if (diff.inMinutes < 60) return 'Há ${diff.inMinutes} minutos';
-    if (diff.inHours < 24) return 'Há ${diff.inHours} horas';
-    return 'Há ${diff.inDays} dias';
   }
 
   @override
@@ -123,7 +120,7 @@ class NotificationsScreen extends StatelessWidget {
           children: [
             Text(notificacao.mensagem),
             const SizedBox(height: 2),
-            Text(_tempoRelativo(notificacao.createdAt), style: const TextStyle(color: AppTheme.textMuted, fontSize: 11)),
+            Text(formatarTempoDecorrido(notificacao.createdAt), style: const TextStyle(color: AppTheme.textMuted, fontSize: 11)),
           ],
         ),
         onTap: () async {

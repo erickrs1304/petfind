@@ -1,33 +1,44 @@
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 
 import '../theme/app_theme.dart';
 
 // Card que exibe o estado de captura de GPS (obtendo, erro com retry, ou
 // posição confirmada). Usado em telas que precisam de localização exata
-// (registrar avistamento, cadastrar caso) para que o usuário sempre veja a
-// coordenada que será enviada, nunca de forma silenciosa.
+// (registrar avistamento, cadastrar/editar caso) para que o usuário sempre veja
+// a coordenada que será enviada, nunca de forma silenciosa.
 class LocationCaptureCard extends StatelessWidget {
   const LocationCaptureCard({
     super.key,
     required this.obtendo,
-    required this.posicao,
+    required this.lat,
+    required this.lng,
     required this.erro,
     required this.onRetry,
     this.tituloObtendo = 'Obtendo localização...',
     this.tituloOk = 'GPS capturado automaticamente',
+    this.mostrarHorario = true,
+    this.acaoExtra,
   });
 
   final bool obtendo;
-  final Position? posicao;
+  final double? lat;
+  final double? lng;
   final String? erro;
   final VoidCallback onRetry;
   final String tituloObtendo;
   final String tituloOk;
 
+  /// O horário só faz sentido quando a coordenada acabou de ser capturada.
+  /// Na edição de um caso já existente ele é omitido.
+  final bool mostrarHorario;
+
+  /// Ação opcional abaixo da coordenada (ex.: "Atualizar com meu GPS atual").
+  final Widget? acaoExtra;
+
   @override
   Widget build(BuildContext context) {
     final agora = TimeOfDay.now();
+    final temCoordenada = lat != null && lng != null;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(color: AppTheme.surfaceCard, borderRadius: BorderRadius.circular(16)),
@@ -46,22 +57,24 @@ class LocationCaptureCard extends StatelessWidget {
               Expanded(child: Text(obtendo ? tituloObtendo : tituloOk, style: const TextStyle(fontSize: 13))),
             ]),
             const SizedBox(height: 6),
-            if (posicao != null)
+            if (temCoordenada)
               Row(children: [
                 const Icon(Icons.public, color: Colors.blueGrey, size: 18),
                 const SizedBox(width: 8),
                 Text(
-                  '${posicao!.latitude.toStringAsFixed(4)}° S, ${posicao!.longitude.toStringAsFixed(4)}° O',
+                  '${lat!.toStringAsFixed(4)}° S, ${lng!.toStringAsFixed(4)}° O',
                   style: const TextStyle(fontSize: 13),
                 ),
               ]),
-            const SizedBox(height: 6),
-            Row(children: [
-              const Icon(Icons.access_time, color: Colors.blueGrey, size: 18),
-              const SizedBox(width: 8),
-              Text('Hoje, ${agora.format(context)}', style: const TextStyle(fontSize: 13)),
-            ]),
-            if (posicao != null) ...[
+            if (mostrarHorario) ...[
+              const SizedBox(height: 6),
+              Row(children: [
+                const Icon(Icons.access_time, color: Colors.blueGrey, size: 18),
+                const SizedBox(width: 8),
+                Text('Hoje, ${agora.format(context)}', style: const TextStyle(fontSize: 13)),
+              ]),
+            ],
+            if (temCoordenada) ...[
               const SizedBox(height: 10),
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 8),
@@ -75,6 +88,10 @@ class LocationCaptureCard extends StatelessWidget {
                   ],
                 ),
               ),
+            ],
+            if (acaoExtra != null) ...[
+              const SizedBox(height: 8),
+              acaoExtra!,
             ],
           ],
           if (obtendo) const Padding(padding: EdgeInsets.only(top: 8), child: LinearProgressIndicator()),

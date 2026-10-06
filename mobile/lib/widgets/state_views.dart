@@ -102,6 +102,9 @@ class EmptyView extends StatelessWidget {
     this.subtitle,
     this.actionLabel,
     this.onAction,
+    this.secondaryActionLabel,
+    this.onSecondaryAction,
+    this.footer,
   });
 
   final IconData icon;
@@ -109,6 +112,11 @@ class EmptyView extends StatelessWidget {
   final String? subtitle;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final String? secondaryActionLabel;
+  final VoidCallback? onSecondaryAction;
+
+  /// Conteúdo extra abaixo das ações (ex.: dicas de como ajudar).
+  final Widget? footer;
 
   @override
   Widget build(BuildContext context) {
@@ -128,6 +136,14 @@ class EmptyView extends StatelessWidget {
             if (actionLabel != null && onAction != null) ...[
               const SizedBox(height: AppSpacing.lg),
               OutlinedButton(onPressed: onAction, child: Text(actionLabel!)),
+            ],
+            if (secondaryActionLabel != null && onSecondaryAction != null) ...[
+              const SizedBox(height: AppSpacing.xs),
+              TextButton(onPressed: onSecondaryAction, child: Text(secondaryActionLabel!)),
+            ],
+            if (footer != null) ...[
+              const SizedBox(height: AppSpacing.lg),
+              footer!,
             ],
           ],
         ),

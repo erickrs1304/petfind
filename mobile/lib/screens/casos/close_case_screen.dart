@@ -4,6 +4,8 @@ import '../../data/api_client.dart';
 import '../../data/models/animal.dart';
 import '../../data/repositories/animal_repository.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/formatters.dart';
+import '../../utils/share_helper.dart';
 import '../../widgets/app_snackbar.dart';
 import '../../widgets/petfind_header.dart';
 import '../../widgets/status_chip.dart';
@@ -29,6 +31,8 @@ class _CloseCaseScreenState extends State<CloseCaseScreen> {
       await _repository.encerrarCaso(widget.animal.id);
       if (!mounted) return;
       showAppSnackBar(context, 'Que ótimo! Seu amigo está de volta!', type: AppSnackType.success);
+      await _oferecerCompartilhamento();
+      if (!mounted) return;
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
@@ -36,6 +40,26 @@ class _CloseCaseScreenState extends State<CloseCaseScreen> {
     } finally {
       if (mounted) setState(() => _carregando = false);
     }
+  }
+
+  // RF-009, passo 8 - o sistema oferece a opção "Compartilhar boa notícia".
+  Future<void> _oferecerCompartilhamento() async {
+    final compartilhar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Que ótimo! Seu amigo está de volta!'),
+        content: Text('Quer avisar quem ajudou na busca que ${widget.animal.nome} foi encontrado?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Agora não')),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(context).pop(true),
+            icon: const Icon(Icons.share_outlined, size: 18),
+            label: const Text('Compartilhar boa notícia'),
+          ),
+        ],
+      ),
+    );
+    if (compartilhar == true) await compartilharBoaNoticia(widget.animal);
   }
 
   @override
@@ -105,8 +129,7 @@ class _CloseCaseScreenState extends State<CloseCaseScreen> {
               decoration: BoxDecoration(color: AppTheme.surfaceCard, borderRadius: BorderRadius.circular(16)),
               child: Column(
                 children: [
-                  _linhaResumo(Icons.calendar_today_outlined,
-                      'Desapareceu em: ${animal.dataDesaparecimento.day.toString().padLeft(2, '0')}/${animal.dataDesaparecimento.month.toString().padLeft(2, '0')}/${animal.dataDesaparecimento.year}'),
+                  _linhaResumo(Icons.calendar_today_outlined, 'Desapareceu em: ${formatarData(animal.dataDesaparecimento)}'),
                   _linhaResumo(Icons.location_on_outlined, 'Última localização: ${animal.ultimaLocalizacaoTexto}'),
                   _linhaResumo(Icons.groups_outlined, 'Colaboradores: ${widget.totalAvistamentos} avistamentos registrados'),
                 ],

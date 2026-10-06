@@ -1,25 +1,20 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const { z } = require('zod');
 const { Usuario } = require('../models');
 const { signToken } = require('../utils/jwt');
 const authMiddleware = require('../middleware/auth');
+const {
+  registerSchema,
+  loginSchema,
+  forgotSchema,
+  resetSchema,
+  updateProfileSchema,
+} = require('../validators/authValidators');
 
 const router = express.Router();
 
 const MAX_TENTATIVAS_LOGIN = 3;
 const BLOQUEIO_LOGIN_MINUTOS = 5;
-
-const registerSchema = z.object({
-  nome: z.string().min(1).max(100),
-  email: z.string().email(),
-  telefone: z.string().min(1).max(20),
-  senha: z.string().min(6),
-  confirmarSenha: z.string().min(6),
-  regiao: z.string().min(1).max(150),
-  lat: z.number().optional(),
-  lng: z.number().optional(),
-});
 
 // RF-001 - Cadastro de usuário
 router.post('/register', async (req, res) => {
@@ -45,11 +40,6 @@ router.post('/register', async (req, res) => {
     message: 'Cadastro realizado com sucesso!',
     usuario: { id: usuario.id, nome: usuario.nome, email: usuario.email },
   });
-});
-
-const loginSchema = z.object({
-  email: z.string().email(),
-  senha: z.string().min(1),
 });
 
 // RF-002 - Login
@@ -99,8 +89,6 @@ router.post('/login', async (req, res) => {
   });
 });
 
-const forgotSchema = z.object({ email: z.string().email() });
-
 // RF-003 - Solicitar código de recuperação de senha
 // Ambiente de teste: sem serviço de e-mail configurado, o código é logado no console
 // e devolvido em `devCode` para facilitar o teste manual do fluxo.
@@ -119,19 +107,16 @@ router.post('/forgot-password', async (req, res) => {
   usuario.resetCodeExpiraEm = new Date(Date.now() + 15 * 60 * 1000);
   await usuario.save();
 
-  console.log(`[PetFind] Código de recuperação para ${usuario.email}: ${codigo}`);
+  // Mesmo motivo do handler de erro em app.js: em teste isso só some no ruído
+  // (a suíte de RF-003 dispara este fluxo várias vezes de propósito).
+  if (process.env.NODE_ENV !== 'test') {
+    console.log(`[PetFind] Código de recuperação para ${usuario.email}: ${codigo}`);
+  }
 
   return res.json({
     message: 'Código enviado. Verifique seu e-mail (modo teste: veja o console do servidor).',
     devCode: codigo,
   });
-});
-
-const resetSchema = z.object({
-  email: z.string().email(),
-  codigo: z.string().length(6),
-  novaSenha: z.string().min(6),
-  confirmarNovaSenha: z.string().min(6),
 });
 
 // RF-003 - Redefinir senha com código
@@ -165,17 +150,6 @@ router.post('/reset-password', async (req, res) => {
   await usuario.save();
 
   return res.json({ message: 'Senha redefinida com sucesso.' });
-});
-
-const updateProfileSchema = z.object({
-  nome: z.string().min(1).max(100).optional(),
-  telefone: z.string().min(1).max(20).optional(),
-  regiao: z.string().min(1).max(150).optional(),
-  senha: z.string().min(6).optional(),
-  lat: z.number().optional(),
-  lng: z.number().optional(),
-  raioNotificacaoKm: z.number().positive().optional(),
-  notificacoesAtivas: z.boolean().optional(),
 });
 
 // RF-001 - Consultar dados do próprio usuário

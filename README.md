@@ -136,4 +136,20 @@ Este projeto segue a arquitetura de 3 camadas definida no TCC (app mobile + API 
 
 RF-001 (Manter Usuário), RF-002 (Login), RF-003 (Recuperar Senha), RF-004 (Manter Animal Perdido), RF-005 (Listar Casos Ativos), RF-006 (Registrar Avistamento), RF-007 (Visualizar Mapa), RF-008 (Notificações por Proximidade), RF-009 (Encerrar Caso) e RF-010 (Confirmar/Excluir Avistamento) — conforme especificado no relatório de DERS do TCC.
 
+Os fluxos alternativos do DERS também estão cobertos. Os menos óbvios, e onde encontrá-los no app:
+
+| Fluxo do DERS | Onde está |
+|---|---|
+| RF-004 (3.2) — edição do caso pelo tutor | "Meus Casos" (ícone no topo da Home ou aba Perfil) → **Editar**; também em Detalhes do caso |
+| RF-005 A1 — "Ampliar busca" quando não há casos no raio | Estado vazio da Home: dobra o raio (padrão 5 km) e mostra dicas de como ajudar |
+| RF-005 A2 — GPS negado cai para a região do perfil | Aviso na Home: "Usando região do seu perfil. Ative o GPS para resultados mais precisos." |
+| RF-005 A3 — busca por nome em tempo real | Campo de busca da Home (com *debounce* de 400 ms) |
+| RF-007 A1 — "Compartilhar caso" | Tela do mapa e ícone de compartilhar nos detalhes do caso |
+| RF-007 A2 — avistamentos no mesmo local agrupados | Mapa: marcador único com contador; ao tocar, lista os avistamentos daquele ponto |
+| RF-009 (pós-condição) — "Meus Casos Encerrados" | "Meus Casos" → aba **Encerrados** (histórico preservado, não editável) |
+| RF-009 (passo 8) — "Compartilhar boa notícia" | Diálogo exibido logo após encerrar o caso |
+| RF-010 A2 — tutor confirmou por engano | Confirmar/excluir avistamentos → aba **Confirmados** → "Remover da trajetória" |
+
+Ao encerrar um caso, os colaboradores que registraram avistamentos recebem uma notificação `CASO_ENCERRADO` avisando que o animal foi encontrado.
+
 Regra adicional (não documentada no DERS original): o tutor de um animal não pode registrar um avistamento do próprio animal — se ele o encontrou, deve encerrar o caso (RF-009) em vez de "avistar" e aguardar confirmação de si mesmo.

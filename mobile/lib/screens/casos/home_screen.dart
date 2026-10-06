@@ -1,13 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/animal_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/case_card.dart';
 import '../../widgets/petfind_header.dart';
 import '../../widgets/state_views.dart';
 import 'case_detail_screen.dart';
 import 'create_case_screen.dart';
+import 'my_cases_screen.dart';
 
 // RF-005 - Listar Casos Ativos (Figura 8)
 class HomeScreen extends StatefulWidget {
@@ -20,6 +24,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _buscaController = TextEditingController();
   String? _especieFiltro;
+  Timer? _debounceBusca;
 
   @override
   void initState() {
@@ -27,10 +32,38 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _carregar());
   }
 
+  @override
+  void dispose() {
+    _debounceBusca?.cancel();
+    _buscaController.dispose();
+    super.dispose();
+  }
+
+  // RF-005 A3 - a lista acompanha a digitação; o debounce evita uma requisição
+  // por tecla pressionada.
+  void _aoDigitarBusca(String _) {
+    _debounceBusca?.cancel();
+    _debounceBusca = Timer(const Duration(milliseconds: 400), _carregar);
+  }
+
   Future<void> _carregar() {
+    final usuario = context.read<AuthProvider>().usuario;
     return context.read<AnimalProvider>().carregarCasosAtivos(
           especie: _especieFiltro,
           nome: _buscaController.text.trim(),
+          perfilLat: usuario?.lat,
+          perfilLng: usuario?.lng,
+        );
+  }
+
+  // RF-005 A1 - amplia o raio quando nada é encontrado na região atual.
+  Future<void> _ampliarBusca() {
+    final usuario = context.read<AuthProvider>().usuario;
+    return context.read<AnimalProvider>().ampliarBusca(
+          especie: _especieFiltro,
+          nome: _buscaController.text.trim(),
+          perfilLat: usuario?.lat,
+          perfilLng: usuario?.lng,
         );
   }
 
@@ -41,6 +74,13 @@ class _HomeScreenState extends State<HomeScreen> {
     if (criado == true) _carregar();
   }
 
+  Future<void> _abrirMeusCasos() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const MyCasesScreen()),
+    );
+    if (mounted) _carregar();
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<AnimalProvider>();
@@ -49,6 +89,13 @@ class _HomeScreenState extends State<HomeScreen> {
       titulo: 'Animais Perdidos',
       subtitulo: 'Casos ativos na sua região',
       mostrarVoltar: false,
+      acoes: [
+        IconButton(
+          tooltip: 'Meus casos',
+          icon: const Icon(Icons.folder_shared_outlined, color: Colors.white),
+          onPressed: _abrirMeusCasos,
+        ),
+      ],
       body: RefreshIndicator(
         onRefresh: _carregar,
         child: Column(
@@ -63,6 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: TextField(
                           controller: _buscaController,
                           decoration: const InputDecoration(hintText: 'Buscar por nome, raça...', prefixIcon: Icon(Icons.search)),
+                          onChanged: _aoDigitarBusca,
                           onSubmitted: (_) => _carregar(),
                         ),
                       ),
@@ -98,9 +146,21 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Align(alignment: Alignment.centerLeft, child: SectionLabel('Próximos a você')),
+            // RF-005 A2 - sem GPS, a busca cai para a região cadastrada no perfil.
+            if (provider.usandoRegiaoDoPerfil)
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: InfoBanner(
+                  icon: Icons.location_off_outlined,
+                  message: 'Usando região do seu perfil. Ative o GPS para resultados mais precisos.',
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: SectionLabel('Próximos a você • ${provider.raioKm.toStringAsFixed(0)} km'),
+              ),
             ),
             Expanded(child: _conteudo(provider)),
           ],
@@ -136,12 +196,22 @@ class _HomeScreenState extends State<HomeScreen> {
       return ErrorView(message: provider.erro!, onRetry: _carregar);
     }
     if (provider.casos.isEmpty) {
-      return EmptyView(
-        icon: Icons.search_off,
-        title: 'Nenhum animal perdido encontrado nesta região',
-        subtitle: 'Puxe para atualizar ou seja o primeiro a cadastrar um caso.',
-        actionLabel: 'Cadastrar caso',
-        onAction: _novoCaso,
+      // RF-005 A1 - além do aviso, oferece ampliar o raio e dicas de como ajudar.
+      final temLocalizacao = provider.origemLocalizacao != OrigemLocalizacao.indisponivel;
+      return SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: EmptyView(
+          icon: Icons.search_off,
+          title: 'Nenhum animal perdido encontrado nesta região.',
+          subtitle: temLocalizacao
+              ? 'Nenhum caso ativo em um raio de ${provider.raioKm.toStringAsFixed(0)} km de você.'
+              : 'Puxe para atualizar ou seja o primeiro a cadastrar um caso.',
+          actionLabel: temLocalizacao ? 'Ampliar busca' : null,
+          onAction: temLocalizacao ? _ampliarBusca : null,
+          secondaryActionLabel: 'Cadastrar caso',
+          onSecondaryAction: _novoCaso,
+          footer: const _DicasComoAjudar(),
+        ),
       );
     }
     return ListView.separated(
@@ -160,6 +230,43 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         );
       },
+    );
+  }
+}
+
+// RF-005 A1 (c) - dicas sobre como ajudar, exibidas quando não há casos na região.
+class _DicasComoAjudar extends StatelessWidget {
+  const _DicasComoAjudar();
+
+  static const _dicas = [
+    'Compartilhe os casos ativos com vizinhos e grupos do bairro.',
+    'Ao ver um animal perdido, registre o avistamento com o GPS ligado.',
+    'Mantenha as notificações por proximidade ativas para ser avisado na hora.',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: AppTheme.surfaceCard, borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SectionLabel('Como ajudar'),
+          for (final dica in _dicas)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.volunteer_activism_outlined, size: 16, color: AppTheme.primaryStrong),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(dica, style: const TextStyle(fontSize: 12))),
+                ],
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

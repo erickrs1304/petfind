@@ -8,6 +8,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/app_snackbar.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/petfind_header.dart';
+import '../casos/my_cases_screen.dart';
 
 // RF-001 - Manter Usuário: edição de perfil (Figura 3)
 class ProfileScreen extends StatefulWidget {
@@ -84,6 +85,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 12),
             ],
             if (_editando) ..._camposEdicao() else ..._camposLeitura(usuario),
+            if (!_editando) ...[
+              const SizedBox(height: 16),
+              const SectionLabel('Meus casos'),
+              Container(
+                decoration: BoxDecoration(color: AppTheme.surfaceCard, borderRadius: BorderRadius.circular(14)),
+                child: ListTile(
+                  leading: const Icon(Icons.folder_shared_outlined, color: AppTheme.primaryStrong),
+                  title: const Text('Casos que cadastrei'),
+                  subtitle: const Text('Editar casos ativos e ver os encerrados', style: TextStyle(fontSize: 12)),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const MyCasesScreen()),
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
             if (_editando)
               ElevatedButton(

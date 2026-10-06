@@ -6,6 +6,8 @@ import '../../data/models/animal.dart';
 import '../../data/repositories/animal_repository.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/formatters.dart';
+import '../../utils/share_helper.dart';
 import '../../widgets/petfind_header.dart';
 import '../../widgets/state_views.dart';
 import '../../widgets/status_chip.dart';
@@ -13,6 +15,7 @@ import '../avistamentos/confirm_sightings_screen.dart';
 import '../avistamentos/map_screen.dart';
 import '../avistamentos/register_sighting_screen.dart';
 import 'close_case_screen.dart';
+import 'create_case_screen.dart';
 
 // Tela de detalhes do caso: ponto de entrada para RF-006, RF-007, RF-009 e RF-010.
 class CaseDetailScreen extends StatefulWidget {
@@ -28,6 +31,7 @@ class _CaseDetailScreenState extends State<CaseDetailScreen> {
   final _repository = AnimalRepository();
   Animal? _animal;
   int _totalAvistamentos = 0;
+  int _avistamentosPendentes = 0;
   bool _carregando = true;
   String? _erro;
 
@@ -48,6 +52,7 @@ class _CaseDetailScreenState extends State<CaseDetailScreen> {
       setState(() {
         _animal = animal;
         _totalAvistamentos = avistamentos.length;
+        _avistamentosPendentes = avistamentos.where((a) => a.status == 'PENDENTE').length;
       });
     } catch (e) {
       setState(() => _erro = extractErrorMessage(e, fallback: 'Não foi possível carregar o caso.'));
@@ -63,6 +68,21 @@ class _CaseDetailScreenState extends State<CaseDetailScreen> {
     if (encerrado == true) _carregar();
   }
 
+  // RF-004 (3.2) - edição do caso pelo tutor.
+  Future<void> _editarCaso() async {
+    final salvo = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => CreateCaseScreen(animalParaEditar: _animal!)),
+    );
+    if (salvo == true) _carregar();
+  }
+
+  Future<void> _revisarAvistamentos() async {
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => ConfirmSightingsScreen(animal: _animal!)),
+    );
+    if (mounted) _carregar();
+  }
+
   @override
   Widget build(BuildContext context) {
     final usuario = context.watch<AuthProvider>().usuario;
@@ -72,6 +92,14 @@ class _CaseDetailScreenState extends State<CaseDetailScreen> {
     return PetFindScaffold(
       titulo: animal?.nome ?? 'Detalhes do caso',
       subtitulo: animal != null ? '${animal.especie} • $_totalAvistamentos avistamentos' : null,
+      acoes: [
+        if (animal != null)
+          IconButton(
+            tooltip: 'Compartilhar caso',
+            icon: const Icon(Icons.share_outlined, color: Colors.white),
+            onPressed: () => compartilharCaso(animal),
+          ),
+      ],
       body: _carregando
           ? const LoadingView()
           : _erro != null
@@ -99,8 +127,7 @@ class _CaseDetailScreenState extends State<CaseDetailScreen> {
                       if (animal.porte != null && animal.porte!.isNotEmpty) _linha(context, 'Porte', animal.porte!),
                       _linha(context, 'Características', animal.caracteristicas),
                       _linha(context, 'Última localização', animal.ultimaLocalizacaoTexto),
-                      _linha(context, 'Desaparecido em',
-                          '${animal.dataDesaparecimento.day}/${animal.dataDesaparecimento.month}/${animal.dataDesaparecimento.year}'),
+                      _linha(context, 'Desaparecido em', formatarData(animal.dataDesaparecimento)),
                       if (animal.tutorNome != null) _linha(context, 'Tutor', animal.tutorNome!),
                       const SizedBox(height: 24),
                       OutlinedButton.icon(
@@ -129,11 +156,19 @@ class _CaseDetailScreenState extends State<CaseDetailScreen> {
                         ),
                         const SizedBox(height: 12),
                         OutlinedButton.icon(
-                          onPressed: () => Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => ConfirmSightingsScreen(animal: animal)),
-                          ),
+                          onPressed: _editarCaso,
+                          icon: const Icon(Icons.edit_outlined),
+                          label: const Text('Editar caso'),
+                        ),
+                        const SizedBox(height: 12),
+                        OutlinedButton.icon(
+                          onPressed: _revisarAvistamentos,
                           icon: const Icon(Icons.playlist_add_check_outlined),
-                          label: const Text('Confirmar/excluir avistamentos'),
+                          label: Text(
+                            _avistamentosPendentes > 0
+                                ? 'Confirmar/excluir avistamentos ($_avistamentosPendentes pendentes)'
+                                : 'Confirmar/excluir avistamentos',
+                          ),
                         ),
                         const SizedBox(height: 12),
                         ElevatedButton.icon(

@@ -1,4 +1,4 @@
-const { Usuario, Notificacao } = require('../models');
+const { Usuario, Notificacao, Avistamento } = require('../models');
 const { haversineDistanceKm } = require('../utils/geo');
 
 // Dispara notificações de proximidade para um novo caso (RF-004 + RF-008).
@@ -61,4 +61,26 @@ async function notificarNovoAvistamento(avistamento, animal) {
   if (notificacoes.length) await Notificacao.bulkCreate(notificacoes);
 }
 
-module.exports = { notificarNovoCaso, notificarNovoAvistamento };
+// Avisa quem colaborou com o caso que a busca terminou (RF-009).
+// Só os colaboradores são notificados: o tutor é quem executa o encerramento e já vê o resultado na tela.
+async function notificarCasoEncerrado(animal) {
+  const avistamentos = await Avistamento.findAll({
+    where: { animalId: animal.id },
+    attributes: ['usuarioId'],
+  });
+
+  const colaboradores = [...new Set(avistamentos.map((a) => a.usuarioId))].filter((id) => id !== animal.usuarioId);
+  if (!colaboradores.length) return;
+
+  await Notificacao.bulkCreate(
+    colaboradores.map((usuarioId) => ({
+      usuarioId,
+      tipo: 'CASO_ENCERRADO',
+      titulo: 'Caso encerrado',
+      mensagem: `Boa notícia! ${animal.nome} foi encontrado. Obrigado por ajudar na busca!`,
+      referenciaAnimalId: animal.id,
+    })),
+  );
+}
+
+module.exports = { notificarNovoCaso, notificarNovoAvistamento, notificarCasoEncerrado };

@@ -14,31 +14,40 @@ class DashedPhotoPicker extends StatelessWidget {
     super.key,
     required this.onTap,
     this.fotoBytes,
+    this.fotoUrl,
     this.texto = 'Adicionar foto',
     this.height = 140,
   });
 
   final VoidCallback onTap;
   final Uint8List? fotoBytes;
+
+  /// Foto já salva no servidor, exibida na edição enquanto nenhuma nova é escolhida.
+  final String? fotoUrl;
+
   final String texto;
   final double height;
 
   @override
   Widget build(BuildContext context) {
-    final foto = fotoBytes;
+    final bytes = fotoBytes;
+    final ImageProvider? imagem = bytes != null
+        ? MemoryImage(bytes)
+        : (fotoUrl != null ? NetworkImage(fotoUrl!) : null);
+
     return GestureDetector(
       onTap: onTap,
       child: CustomPaint(
-        painter: foto == null ? _DashedBorderPainter(color: AppTheme.primary) : null,
+        painter: imagem == null ? _DashedBorderPainter(color: AppTheme.primary) : null,
         child: Container(
           height: height,
           width: double.infinity,
           decoration: BoxDecoration(
             color: AppTheme.primary.withValues(alpha: 0.06),
             borderRadius: BorderRadius.circular(16),
-            image: foto != null ? DecorationImage(image: MemoryImage(foto), fit: BoxFit.cover) : null,
+            image: imagem != null ? DecorationImage(image: imagem, fit: BoxFit.cover) : null,
           ),
-          child: foto == null
+          child: imagem == null
               ? Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [

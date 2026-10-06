@@ -7,6 +7,9 @@ import '../../data/models/animal.dart';
 import '../../data/models/avistamento.dart';
 import '../../data/repositories/animal_repository.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/constants.dart';
+import '../../utils/formatters.dart';
+import '../../utils/share_helper.dart';
 import '../../widgets/petfind_header.dart';
 import '../../widgets/state_views.dart';
 
@@ -21,9 +24,25 @@ class MapScreen extends StatefulWidget {
   State<MapScreen> createState() => _MapScreenState();
 }
 
+/// Avistamentos que caem praticamente no mesmo ponto viram um marcador só,
+/// com contador (RF-007, fluxo alternativo A2).
+class _GrupoAvistamentos {
+  _GrupoAvistamentos(this.avistamentos);
+
+  final List<Avistamento> avistamentos;
+
+  LatLng get ponto => LatLng(avistamentos.first.lat, avistamentos.first.lng);
+  int get quantidade => avistamentos.length;
+}
+
 class _MapScreenState extends State<MapScreen> {
+  // ~4 casas decimais equivalem a cerca de 11 metros: perto o bastante para que
+  // dois registros representem "o mesmo local" aos olhos do usuário.
+  static const _precisaoAgrupamento = 4;
+
   final _repository = AnimalRepository();
   List<Avistamento> _confirmados = [];
+  List<_GrupoAvistamentos> _grupos = [];
   bool _carregando = true;
   String? _erro;
 
@@ -34,26 +53,66 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _carregar() async {
-    setState(() => _carregando = true);
+    setState(() {
+      _carregando = true;
+      _erro = null;
+    });
     try {
-      _confirmados = await _repository.listarAvistamentos(widget.animal.id, status: 'CONFIRMADO');
+      final confirmados = await _repository.listarAvistamentos(widget.animal.id, status: 'CONFIRMADO');
+      if (!mounted) return;
+      setState(() {
+        _confirmados = confirmados;
+        _grupos = _agrupar(confirmados);
+      });
     } catch (e) {
-      _erro = extractErrorMessage(e);
+      if (!mounted) return;
+      setState(() => _erro = extractErrorMessage(e));
     } finally {
       if (mounted) setState(() => _carregando = false);
     }
   }
 
-  Widget _pinNumerado(int numero, Color cor, String rotulo) {
+  List<_GrupoAvistamentos> _agrupar(List<Avistamento> avistamentos) {
+    final porLocal = <String, List<Avistamento>>{};
+    // A lista vem ordenada por data/hora, então a ordem dos grupos preserva a cronologia.
+    for (final avistamento in avistamentos) {
+      final chave = '${avistamento.lat.toStringAsFixed(_precisaoAgrupamento)},'
+          '${avistamento.lng.toStringAsFixed(_precisaoAgrupamento)}';
+      porLocal.putIfAbsent(chave, () => []).add(avistamento);
+    }
+    return porLocal.values.map(_GrupoAvistamentos.new).toList();
+  }
+
+  Widget _pinNumerado(int numero, Color cor, String rotulo, {int quantidade = 1}) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(color: cor, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
-          alignment: Alignment.center,
-          child: Text('$numero', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(color: cor, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
+              alignment: Alignment.center,
+              child: Text('$numero', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+            ),
+            // Contador do agrupamento (A2).
+            if (quantidade > 1)
+              Positioned(
+                right: -6,
+                top: -6,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: AppTheme.secondaryBadge,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.white, width: 1.5),
+                  ),
+                  child: Text('$quantidade', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10)),
+                ),
+              ),
+          ],
         ),
         Container(
           margin: const EdgeInsets.only(top: 2),
@@ -69,11 +128,21 @@ class _MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
     final centro = LatLng(widget.animal.lat, widget.animal.lng);
     final pontosTrajetoria = [centro, ..._confirmados.map((a) => LatLng(a.lat, a.lng))];
+    // Quadro 17 do DERS: o raio de busca acompanha o avistamento mais recente;
+    // sem avistamentos, fica no ponto do desaparecimento.
+    final centroRaio = _confirmados.isEmpty ? centro : LatLng(_confirmados.last.lat, _confirmados.last.lng);
 
     return PetFindScaffold(
       titulo: 'Mapa do Caso',
       subtitulo: '${widget.animal.nome} • ${_confirmados.length} avistamentos',
       scrollable: false,
+      acoes: [
+        IconButton(
+          tooltip: 'Compartilhar caso',
+          icon: const Icon(Icons.share_outlined, color: Colors.white),
+          onPressed: () => compartilharCaso(widget.animal),
+        ),
+      ],
       body: _carregando
           ? const LoadingView()
           : _erro != null
@@ -89,8 +158,8 @@ class _MapScreenState extends State<MapScreen> {
                         ),
                         CircleLayer(circles: [
                           CircleMarker(
-                            point: centro,
-                            radius: 5000,
+                            point: centroRaio,
+                            radius: kDefaultNotificationRadiusKm * 1000,
                             useRadiusInMeter: true,
                             color: AppTheme.primaryStrong.withValues(alpha: 0.08),
                             borderColor: AppTheme.primaryStrong.withValues(alpha: 0.4),
@@ -109,15 +178,20 @@ class _MapScreenState extends State<MapScreen> {
                             alignment: Alignment.topCenter,
                             child: _pinNumerado(1, AppTheme.dangerStrong, 'Última loc.'),
                           ),
-                          for (var i = 0; i < _confirmados.length; i++)
+                          for (var i = 0; i < _grupos.length; i++)
                             Marker(
-                              point: LatLng(_confirmados[i].lat, _confirmados[i].lng),
+                              point: _grupos[i].ponto,
                               width: 70,
                               height: 56,
                               alignment: Alignment.topCenter,
                               child: GestureDetector(
-                                onTap: () => _mostrarDetalhesAvistamento(_confirmados[i]),
-                                child: _pinNumerado(i + 2, AppTheme.primaryStrong, 'Avist. ${i + 1}'),
+                                onTap: () => _mostrarGrupo(_grupos[i]),
+                                child: _pinNumerado(
+                                  i + 2,
+                                  AppTheme.primaryStrong,
+                                  _grupos[i].quantidade > 1 ? '${_grupos[i].quantidade} avist.' : 'Avist. ${i + 1}',
+                                  quantidade: _grupos[i].quantidade,
+                                ),
                               ),
                             ),
                         ]),
@@ -130,33 +204,60 @@ class _MapScreenState extends State<MapScreen> {
                       child: Card(
                         child: Padding(
                           padding: const EdgeInsets.all(12),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          child: Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 14,
+                            runSpacing: 6,
                             children: [
                               _legenda(AppTheme.dangerStrong, 'Última loc.'),
                               _legenda(AppTheme.primaryStrong, 'Avistamentos'),
-                              Row(children: [
+                              Row(mainAxisSize: MainAxisSize.min, children: [
                                 Container(width: 16, height: 2, color: AppTheme.primaryStrong),
                                 const SizedBox(width: 4),
                                 const Text('Trajetória', style: TextStyle(fontSize: 11)),
+                              ]),
+                              Row(mainAxisSize: MainAxisSize.min, children: [
+                                Container(
+                                  width: 12,
+                                  height: 12,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: AppTheme.primaryStrong.withValues(alpha: 0.15),
+                                    border: Border.all(color: AppTheme.primaryStrong.withValues(alpha: 0.5)),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Text('Raio de 5 km', style: TextStyle(fontSize: 11)),
                               ]),
                             ],
                           ),
                         ),
                       ),
                     ),
+                    // RF-007 A1 - sem avistamentos confirmados, orienta a divulgar o caso.
                     if (_confirmados.isEmpty)
-                      const Positioned(
+                      Positioned(
                         left: 24,
                         right: 24,
                         top: 16,
                         child: Card(
                           child: Padding(
-                            padding: EdgeInsets.all(12),
-                            child: Text(
-                              'Nenhum avistamento confirmado ainda. Compartilhe para ajudar!',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: AppTheme.textMuted),
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text(
+                                  'Nenhum avistamento confirmado ainda. Compartilhe para ajudar!',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: AppTheme.textMuted),
+                                ),
+                                const SizedBox(height: 8),
+                                FilledButton.icon(
+                                  onPressed: () => compartilharCaso(widget.animal),
+                                  icon: const Icon(Icons.share_outlined, size: 18),
+                                  label: const Text('Compartilhar caso'),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -172,31 +273,54 @@ class _MapScreenState extends State<MapScreen> {
         Text(texto, style: const TextStyle(fontSize: 11)),
       ]);
 
-  void _mostrarDetalhesAvistamento(Avistamento avistamento) {
+  void _mostrarGrupo(_GrupoAvistamentos grupo) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: grupo.quantidade > 1 ? 0.5 : 0.4,
+        maxChildSize: 0.9,
+        builder: (context, scrollController) => ListView(
+          controller: scrollController,
+          padding: const EdgeInsets.all(24),
           children: [
-            Text('${avistamento.dataHora.day}/${avistamento.dataHora.month} às ${avistamento.dataHora.hour}:${avistamento.dataHora.minute.toString().padLeft(2, '0')}',
-                style: Theme.of(context).textTheme.titleMedium),
-            if (avistamento.colaboradorNome != null) Text('Registrado por ${avistamento.colaboradorNome}'),
-            if (avistamento.comentario != null && avistamento.comentario!.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(avistamento.comentario!),
-            ],
-            if (avistamento.fotoUrlCompleta != null) ...[
-              const SizedBox(height: 12),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(avistamento.fotoUrlCompleta!, height: 160, fit: BoxFit.cover),
+            if (grupo.quantidade > 1)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  '${grupo.quantidade} avistamentos neste local',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
               ),
-            ],
+            for (final avistamento in grupo.avistamentos) _detalhesAvistamento(avistamento, grupo.quantidade > 1),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _detalhesAvistamento(Avistamento avistamento, bool emGrupo) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (emGrupo) const Divider(),
+          Text(formatarDataHora(avistamento.dataHora), style: Theme.of(context).textTheme.titleMedium),
+          if (avistamento.colaboradorNome != null) Text('Registrado por ${avistamento.colaboradorNome}'),
+          if (avistamento.comentario != null && avistamento.comentario!.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(avistamento.comentario!),
+          ],
+          if (avistamento.fotoUrlCompleta != null) ...[
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(avistamento.fotoUrlCompleta!, height: 160, width: double.infinity, fit: BoxFit.cover),
+            ),
+          ],
+        ],
       ),
     );
   }

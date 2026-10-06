@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/models/animal.dart';
 import '../theme/app_theme.dart';
+import '../utils/formatters.dart';
 import 'status_chip.dart';
 
 class CaseCard extends StatelessWidget {
@@ -19,13 +20,6 @@ class CaseCard extends StatelessWidget {
       default:
         return Icons.emoji_nature;
     }
-  }
-
-  String get _tempoDesaparecido {
-    final dias = DateTime.now().difference(animal.dataDesaparecimento).inDays;
-    if (dias <= 0) return 'Desaparecido hoje';
-    if (dias == 1) return 'Desaparecido há 1 dia';
-    return 'Desaparecido há $dias dias';
   }
 
   String get _subtitulo {
@@ -72,7 +66,7 @@ class CaseCard extends StatelessWidget {
                         '${animal.distanciaKm!.toStringAsFixed(1)} km de você',
                         style: const TextStyle(color: AppTheme.primaryStrong, fontWeight: FontWeight.w600, fontSize: 13),
                       ),
-                    Text(_tempoDesaparecido, style: Theme.of(context).textTheme.bodySmall),
+                    Text(formatarTempoDesaparecido(animal.dataDesaparecimento), style: Theme.of(context).textTheme.bodySmall),
                   ],
                 ),
               ),

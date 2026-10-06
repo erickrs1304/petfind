@@ -34,11 +34,13 @@ class AppTheme {
       scaffoldBackgroundColor: background,
     );
     return base.copyWith(
+      // copyWith sobre o estilo base (e não um TextStyle novo) preserva a cor do
+      // tema; sem isso o texto sem cor explícita sai branco sobre fundo claro.
       textTheme: base.textTheme.copyWith(
-        titleMedium: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        bodyMedium: const TextStyle(fontSize: 14),
-        bodySmall: const TextStyle(fontSize: 12, color: textMuted),
-        labelSmall: const TextStyle(
+        titleMedium: base.textTheme.titleMedium?.copyWith(fontSize: 16, fontWeight: FontWeight.bold),
+        bodyMedium: base.textTheme.bodyMedium?.copyWith(fontSize: 14),
+        bodySmall: base.textTheme.bodySmall?.copyWith(fontSize: 12, color: textMuted),
+        labelSmall: base.textTheme.labelSmall?.copyWith(
           fontSize: 11,
           fontWeight: FontWeight.bold,
           letterSpacing: 0.5,

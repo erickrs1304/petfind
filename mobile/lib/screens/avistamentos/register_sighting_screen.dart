@@ -135,7 +135,8 @@ class _RegisterSightingScreenState extends State<RegisterSightingScreen> {
             const SectionLabel('Localização capturada'),
             LocationCaptureCard(
               obtendo: _obtendoLocalizacao,
-              posicao: _posicao,
+              lat: _posicao?.latitude,
+              lng: _posicao?.longitude,
               erro: _erro,
               onRetry: _obterLocalizacao,
             ),

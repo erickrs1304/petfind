@@ -8,6 +8,7 @@ enum AuthStatus { carregando, autenticado, naoAutenticado }
 
 class AuthProvider extends ChangeNotifier {
   AuthProvider() {
+    ApiClient.instance.onUnauthorized = _encerrarSessaoInvalida;
     _carregarSessao();
   }
 
@@ -15,6 +16,15 @@ class AuthProvider extends ChangeNotifier {
 
   AuthStatus status = AuthStatus.carregando;
   Usuario? usuario;
+
+  // Disparado quando o servidor recusa o token no meio do uso: volta para o
+  // login em vez de deixar o usuário numa sessão que não funciona mais.
+  void _encerrarSessaoInvalida() {
+    if (status == AuthStatus.naoAutenticado) return;
+    usuario = null;
+    status = AuthStatus.naoAutenticado;
+    notifyListeners();
+  }
 
   Future<void> _carregarSessao() async {
     final token = await ApiClient.instance.readToken();

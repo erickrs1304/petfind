@@ -1,4 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- RF-004/RF-006/RF-007/RF-008: captura de GPS e notificações por proximidade. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- RF-006: foto via câmera ao registrar avistamento. -->
+    <uses-permission android:name="android.permission.CAMERA"/>
     <application
         android:label="petfind"
         android:name="${applicationName}"

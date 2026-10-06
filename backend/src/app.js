@@ -1,4 +1,8 @@
 const path = require('path');
+// Faz o Express 4 encaminhar rejeições de handlers `async` para o middleware de
+// erro. Sem isso, qualquer falha de banco dentro de uma rota async vira uma
+// unhandled rejection e derruba o processo inteiro. Precisa vir antes do express.
+require('express-async-errors');
 const express = require('express');
 const cors = require('cors');
 
@@ -22,7 +26,10 @@ app.use('/sightings', sightingRoutes);
 app.use('/notifications', notificationRoutes);
 
 app.use((err, req, res, next) => {
-  console.error(err);
+  // Em teste, vários casos disparam este handler de propósito (arquivo inválido,
+  // tamanho excedido, JSON malformado) — logar o erro ali só faz ruído na saída
+  // do Jest sem ajudar em nada. Em dev/produção o log continua normal.
+  if (process.env.NODE_ENV !== 'test') console.error(err);
   if (err.message && err.message.includes('imagem')) {
     return res.status(400).json({ error: err.message });
   }

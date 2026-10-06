@@ -60,7 +60,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (_localizacaoAutomatica) {
       try {
         final posicao = await Geolocator.getCurrentPosition(
-          locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.medium,
+            timeLimit: Duration(seconds: 8),
+          ),
         );
         lat = posicao.latitude;
         lng = posicao.longitude;
