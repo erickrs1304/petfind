@@ -25,7 +25,8 @@ class Avistamento {
   final String status;
   final String? colaboradorNome;
 
-  String? get fotoUrlCompleta => fotoUrl == null ? null : '$kApiBaseUrl$fotoUrl';
+  // Fotos novas ficam no Supabase Storage (URL absoluta); as antigas são relativas à API.
+  String? get fotoUrlCompleta => fotoUrl == null ? null : (fotoUrl!.startsWith('http') ? fotoUrl : '$kApiBaseUrl$fotoUrl');
 
   factory Avistamento.fromJson(Map<String, dynamic> json) => Avistamento(
         id: json['id'] as int,

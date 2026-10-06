@@ -3,6 +3,7 @@ const { Op } = require('sequelize');
 const { Animal, Avistamento, Usuario } = require('../models');
 const authMiddleware = require('../middleware/auth');
 const upload = require('../middleware/upload');
+const { urlDaFoto } = upload;
 const { haversineDistanceKm } = require('../utils/geo');
 const {
   notificarNovoCaso,
@@ -65,7 +66,7 @@ router.post('/', upload.single('foto'), async (req, res) => {
   const animal = await Animal.create({
     ...data,
     usuarioId: req.userId,
-    fotoUrl: req.file ? `/uploads/${req.file.filename}` : null,
+    fotoUrl: urlDaFoto(req.file),
     status: 'ATIVO',
   });
 
@@ -100,7 +101,7 @@ router.put('/:id', upload.single('foto'), async (req, res) => {
   }
 
   Object.assign(animal, parsed.data);
-  if (req.file) animal.fotoUrl = `/uploads/${req.file.filename}`;
+  if (req.file) animal.fotoUrl = urlDaFoto(req.file);
   await animal.save();
 
   return res.json(animal);
@@ -146,7 +147,7 @@ router.post('/:id/sightings', upload.single('foto'), async (req, res) => {
     lat: parsed.data.lat,
     lng: parsed.data.lng,
     comentario: parsed.data.comentario,
-    fotoUrl: req.file ? `/uploads/${req.file.filename}` : null,
+    fotoUrl: urlDaFoto(req.file),
     dataHora: new Date(),
     status: 'PENDENTE',
   });

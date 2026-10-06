@@ -37,7 +37,8 @@ class Animal {
 
   bool get ativo => status == 'ATIVO';
 
-  String? get fotoUrlCompleta => fotoUrl == null ? null : '$kApiBaseUrl$fotoUrl';
+  // Fotos novas ficam no Supabase Storage (URL absoluta); as antigas são relativas à API.
+  String? get fotoUrlCompleta => fotoUrl == null ? null : (fotoUrl!.startsWith('http') ? fotoUrl : '$kApiBaseUrl$fotoUrl');
 
   factory Animal.fromJson(Map<String, dynamic> json) => Animal(
         id: json['id'] as int,
