@@ -1,4 +1,7 @@
 const { Sequelize } = require('sequelize');
+// O Sequelize carrega o driver dinamicamente; o Vercel só o inclui no deploy se
+// ele for importado de forma explícita e passado em dialectModule.
+const pg = require('pg');
 
 // Em teste automatizado (NODE_ENV=test), usa SQLite em memória: cada rodada de
 // teste parte de um banco limpo e isolado, sem depender de um servidor externo.
@@ -12,6 +15,7 @@ const sequelize = isTest
   : process.env.DATABASE_URL
     ? new Sequelize(process.env.DATABASE_URL, {
       logging: false,
+      dialectModule: pg,
       dialectOptions: { ssl: { require: true, rejectUnauthorized: false } },
       // Serverless (Vercel): cada instância abre o próprio pool, então 1 conexão
       // por instância evita estourar o limite de conexões do banco.
@@ -19,6 +23,7 @@ const sequelize = isTest
     })
     : new Sequelize({
       dialect: 'postgres',
+      dialectModule: pg,
       host: process.env.DB_HOST || 'localhost',
       port: process.env.DB_PORT || 5432,
       database: process.env.DB_NAME || 'petfind',
