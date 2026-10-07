@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const { Usuario } = require('../models');
 const { signToken } = require('../utils/jwt');
 const authMiddleware = require('../middleware/auth');
+const { emailConfigurado, enviarCodigoRecuperacao } = require('../services/emailService');
 const {
   registerSchema,
   loginSchema,
@@ -106,6 +107,19 @@ router.post('/forgot-password', async (req, res) => {
   usuario.resetCode = codigo;
   usuario.resetCodeExpiraEm = new Date(Date.now() + 15 * 60 * 1000);
   await usuario.save();
+
+  // Com SMTP configurado o código só vai por e-mail; devolvê-lo na resposta
+  // permitiria a qualquer um redefinir a senha de outra pessoa. Sem SMTP, segue o
+  // modo teste (código no console e em devCode).
+  if (emailConfigurado()) {
+    try {
+      await enviarCodigoRecuperacao(usuario.email, usuario.nome, codigo);
+    } catch (err) {
+      console.error('Falha ao enviar e-mail de recuperação:', err);
+      return res.status(502).json({ error: 'Não foi possível enviar o e-mail agora. Tente novamente em instantes.' });
+    }
+    return res.json({ message: 'Código enviado. Verifique seu e-mail (veja também a caixa de spam).' });
+  }
 
   // Mesmo motivo do handler de erro em app.js: em teste isso só some no ruído
   // (a suíte de RF-003 dispara este fluxo várias vezes de propósito).
