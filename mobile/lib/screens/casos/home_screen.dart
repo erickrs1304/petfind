@@ -109,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Expanded(
                         child: TextField(
                           controller: _buscaController,
-                          decoration: const InputDecoration(hintText: 'Buscar por nome, raça...', prefixIcon: Icon(Icons.search)),
+                          decoration: const InputDecoration(hintText: 'Buscar por nome...', prefixIcon: Icon(Icons.search)),
                           onChanged: _aoDigitarBusca,
                           onSubmitted: (_) => _carregar(),
                         ),
@@ -139,6 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         _chipEspecie('Cachorro', 'Cachorro'),
                         _chipEspecie('Gato', 'Gato'),
+                        _chipEspecie('Outro', 'Outro'),
                         _chipEspecie(null, 'Todos'),
                       ],
                     ),

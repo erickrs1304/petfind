@@ -136,13 +136,6 @@ class _MapScreenState extends State<MapScreen> {
       titulo: 'Mapa do Caso',
       subtitulo: '${widget.animal.nome} • ${_confirmados.length} avistamentos',
       scrollable: false,
-      acoes: [
-        IconButton(
-          tooltip: 'Compartilhar caso',
-          icon: const Icon(Icons.share_outlined, color: Colors.white),
-          onPressed: () => compartilharCaso(widget.animal),
-        ),
-      ],
       body: _carregando
           ? const LoadingView()
           : _erro != null

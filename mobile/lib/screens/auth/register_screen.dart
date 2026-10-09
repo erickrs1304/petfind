@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../data/api_client.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/phone_formatter.dart';
 import '../../widgets/app_snackbar.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/petfind_header.dart';
@@ -132,6 +133,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 label: 'Telefone',
                 controller: _telefoneController,
                 keyboardType: TextInputType.phone,
+                inputFormatters: [PhoneInputFormatter()],
                 hintText: '(99) 99999-9999',
                 validator: (v) => (v == null || v.isEmpty) ? 'Preencha todos os campos obrigatórios.' : null,
               ),

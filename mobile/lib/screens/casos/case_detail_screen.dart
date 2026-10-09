@@ -7,7 +7,6 @@ import '../../data/repositories/animal_repository.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/formatters.dart';
-import '../../utils/share_helper.dart';
 import '../../widgets/petfind_header.dart';
 import '../../widgets/state_views.dart';
 import '../../widgets/status_chip.dart';
@@ -92,14 +91,6 @@ class _CaseDetailScreenState extends State<CaseDetailScreen> {
     return PetFindScaffold(
       titulo: animal?.nome ?? 'Detalhes do caso',
       subtitulo: animal != null ? '${animal.especie} • $_totalAvistamentos avistamentos' : null,
-      acoes: [
-        if (animal != null)
-          IconButton(
-            tooltip: 'Compartilhar caso',
-            icon: const Icon(Icons.share_outlined, color: Colors.white),
-            onPressed: () => compartilharCaso(animal),
-          ),
-      ],
       body: _carregando
           ? const LoadingView()
           : _erro != null

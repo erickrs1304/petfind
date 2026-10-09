@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -17,12 +20,51 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
+// RF-002 A2: após 3 tentativas erradas o servidor bloqueia o login por 5 minutos
+// (HTTP 429); o botão "Entrar" fica desabilitado até o prazo acabar.
+const _duracaoBloqueio = Duration(minutes: 5);
+
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _senhaController = TextEditingController();
   bool _carregando = false;
   String? _erro;
+  DateTime? _bloqueadoAte;
+  Timer? _relogio;
+
+  bool get _bloqueado => _bloqueadoAte != null && DateTime.now().isBefore(_bloqueadoAte!);
+
+  String get _tempoRestante {
+    final restante = _bloqueadoAte!.difference(DateTime.now());
+    final segundos = (restante.inSeconds % 60).toString().padLeft(2, '0');
+    return '${restante.inMinutes}:$segundos';
+  }
+
+  @override
+  void dispose() {
+    _relogio?.cancel();
+    _emailController.dispose();
+    _senhaController.dispose();
+    super.dispose();
+  }
+
+  void _iniciarBloqueio() {
+    _bloqueadoAte = DateTime.now().add(_duracaoBloqueio);
+    _relogio?.cancel();
+    _relogio = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return timer.cancel();
+      if (_bloqueado) {
+        setState(() {});
+      } else {
+        timer.cancel();
+        setState(() {
+          _bloqueadoAte = null;
+          _erro = null;
+        });
+      }
+    });
+  }
 
   Future<void> _entrar() async {
     if (!_formKey.currentState!.validate()) return;
@@ -33,6 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await context.read<AuthProvider>().login(email: _emailController.text.trim(), senha: _senhaController.text);
     } catch (e) {
+      if (e is DioException && e.response?.statusCode == 429) _iniciarBloqueio();
       setState(() => _erro = extractErrorMessage(e, fallback: 'E-mail ou senha inválidos.'));
     } finally {
       if (mounted) setState(() => _carregando = false);
@@ -86,10 +129,10 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: _carregando ? null : _entrar,
+                onPressed: (_carregando || _bloqueado) ? null : _entrar,
                 child: _carregando
                     ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text('Entrar'),
+                    : Text(_bloqueado ? 'Tente novamente em $_tempoRestante' : 'Entrar'),
               ),
               const SizedBox(height: 4),
               TextButton(

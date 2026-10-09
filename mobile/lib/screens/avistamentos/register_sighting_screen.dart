@@ -57,8 +57,29 @@ class _RegisterSightingScreenState extends State<RegisterSightingScreen> {
   }
 
   Future<void> _selecionarFoto() async {
+    final origem = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Tirar foto'),
+              onTap: () => Navigator.of(context).pop(ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Escolher da galeria'),
+              onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (origem == null) return;
     final picker = ImagePicker();
-    final imagem = await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
+    final imagem = await picker.pickImage(source: origem, imageQuality: 85);
     if (imagem == null) return;
     final bytes = await imagem.readAsBytes();
     setState(() => _foto = PickedPhoto(bytes: bytes, filename: imagem.name));

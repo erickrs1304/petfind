@@ -6,6 +6,7 @@ import '../../data/models/usuario.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_snackbar.dart';
+import '../../utils/phone_formatter.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/petfind_header.dart';
 import '../casos/my_cases_screen.dart';
@@ -143,7 +144,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SectionLabel('Dados pessoais'),
         AppTextField(label: 'Nome', controller: _nomeController),
         const SizedBox(height: 12),
-        AppTextField(label: 'Telefone', controller: _telefoneController, keyboardType: TextInputType.phone),
+        AppTextField(
+          label: 'Telefone',
+          controller: _telefoneController,
+          keyboardType: TextInputType.phone,
+          inputFormatters: [PhoneInputFormatter()],
+        ),
         const SizedBox(height: 12),
         AppTextField(label: 'Região (bairro/cidade)', controller: _regiaoController),
         const SizedBox(height: 12),
