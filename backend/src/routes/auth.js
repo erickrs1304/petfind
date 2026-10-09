@@ -63,11 +63,16 @@ router.post('/login', async (req, res) => {
   const senhaCorreta = await bcrypt.compare(senha, usuario.senhaHash);
   if (!senhaCorreta) {
     usuario.loginTentativasFalhas += 1;
-    if (usuario.loginTentativasFalhas >= MAX_TENTATIVAS_LOGIN) {
+    const bloqueou = usuario.loginTentativasFalhas >= MAX_TENTATIVAS_LOGIN;
+    if (bloqueou) {
       usuario.loginBloqueadoAte = new Date(Date.now() + BLOQUEIO_LOGIN_MINUTOS * 60 * 1000);
       usuario.loginTentativasFalhas = 0;
     }
     await usuario.save();
+    // RF-002 A2: a mensagem de bloqueio já aparece na 3ª tentativa errada.
+    if (bloqueou) {
+      return res.status(429).json({ error: 'Muitas tentativas. Recupere sua senha ou tente novamente em 5 minutos.' });
+    }
     return res.status(401).json({ error: 'E-mail ou senha inválidos.' });
   }
 
