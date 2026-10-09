@@ -1,6 +1,7 @@
 const express = require('express');
 const { Avistamento, Animal, Notificacao } = require('../models');
 const authMiddleware = require('../middleware/auth');
+const { enviarPush } = require('../services/pushService');
 
 const router = express.Router();
 router.use(authMiddleware);
@@ -33,13 +34,15 @@ router.post('/:id/confirm', async (req, res) => {
   if (req.body?.comentario) avistamento.comentario = req.body.comentario;
   await avistamento.save();
 
-  await Notificacao.create({
+  const notificacao = {
     usuarioId: avistamento.usuarioId,
     tipo: 'AVISTAMENTO_CONFIRMADO',
     titulo: 'Avistamento confirmado',
     mensagem: 'O tutor confirmou seu avistamento. Obrigado por ajudar!',
     referenciaAnimalId: avistamento.animalId,
-  });
+  };
+  await Notificacao.create(notificacao);
+  await enviarPush([notificacao]);
 
   return res.json({ message: 'Avistamento confirmado e adicionado à trajetória!', avistamento });
 });

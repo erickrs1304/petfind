@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/api_client.dart';
 import '../data/models/usuario.dart';
 import '../data/repositories/auth_repository.dart';
+import '../services/push_service.dart';
 
 enum AuthStatus { carregando, autenticado, naoAutenticado }
 
@@ -36,6 +37,7 @@ class AuthProvider extends ChangeNotifier {
     try {
       usuario = await _repository.me();
       status = AuthStatus.autenticado;
+      _iniciarPush();
     } catch (_) {
       await ApiClient.instance.clearToken();
       status = AuthStatus.naoAutenticado;
@@ -47,6 +49,14 @@ class AuthProvider extends ChangeNotifier {
     usuario = await _repository.login(email: email, senha: senha);
     status = AuthStatus.autenticado;
     notifyListeners();
+    _iniciarPush();
+  }
+
+  // RF-008: registra o celular no servidor para receber push e abre o caso da
+  // notificação que iniciou o app, se houver.
+  void _iniciarPush() {
+    PushService.instance.registrar();
+    PushService.instance.liberarPendente();
   }
 
   Future<void> register({
@@ -93,6 +103,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    await PushService.instance.remover();
     await _repository.logout();
     usuario = null;
     status = AuthStatus.naoAutenticado;

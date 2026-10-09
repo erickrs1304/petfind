@@ -48,3 +48,9 @@ dependencies {
     // Exigido pelo flutter_local_notifications (Android 8+ core library desugaring).
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
+
+// Firebase (push, RF-008): só é aplicado quando o google-services.json existe, para o
+// app continuar compilando em quem ainda não configurou o projeto do Firebase.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}

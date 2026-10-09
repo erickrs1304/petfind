@@ -1,5 +1,6 @@
 const { Usuario, Notificacao, Avistamento } = require('../models');
 const { haversineDistanceKm } = require('../utils/geo');
+const { enviarPush } = require('./pushService');
 
 // Dispara notificações de proximidade para um novo caso (RF-004 + RF-008).
 // O tutor é sempre notificado; demais usuários dentro do raio configurado por cada um recebem alerta.
@@ -27,7 +28,10 @@ async function notificarNovoCaso(animal) {
     });
   }
 
-  if (notificacoes.length) await Notificacao.bulkCreate(notificacoes);
+  if (notificacoes.length) {
+    await Notificacao.bulkCreate(notificacoes);
+    await enviarPush(notificacoes);
+  }
 }
 
 // Dispara notificação do novo avistamento para o tutor (sempre) e demais usuários próximos (RF-006 + RF-008).
@@ -58,7 +62,10 @@ async function notificarNovoAvistamento(avistamento, animal) {
     });
   }
 
-  if (notificacoes.length) await Notificacao.bulkCreate(notificacoes);
+  if (notificacoes.length) {
+    await Notificacao.bulkCreate(notificacoes);
+    await enviarPush(notificacoes);
+  }
 }
 
 // Avisa quem colaborou com o caso que a busca terminou (RF-009).
@@ -72,15 +79,15 @@ async function notificarCasoEncerrado(animal) {
   const colaboradores = [...new Set(avistamentos.map((a) => a.usuarioId))].filter((id) => id !== animal.usuarioId);
   if (!colaboradores.length) return;
 
-  await Notificacao.bulkCreate(
-    colaboradores.map((usuarioId) => ({
-      usuarioId,
-      tipo: 'CASO_ENCERRADO',
-      titulo: 'Caso encerrado',
-      mensagem: `Boa notícia! ${animal.nome} foi encontrado. Obrigado por ajudar na busca!`,
-      referenciaAnimalId: animal.id,
-    })),
-  );
+  const notificacoes = colaboradores.map((usuarioId) => ({
+    usuarioId,
+    tipo: 'CASO_ENCERRADO',
+    titulo: 'Caso encerrado',
+    mensagem: `Boa notícia! ${animal.nome} foi encontrado. Obrigado por ajudar na busca!`,
+    referenciaAnimalId: animal.id,
+  }));
+  await Notificacao.bulkCreate(notificacoes);
+  await enviarPush(notificacoes);
 }
 
 module.exports = { notificarNovoCaso, notificarNovoAvistamento, notificarCasoEncerrado };

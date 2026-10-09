@@ -10,6 +10,7 @@ const authRoutes = require('./routes/auth');
 const animalRoutes = require('./routes/animals');
 const sightingRoutes = require('./routes/sightings');
 const notificationRoutes = require('./routes/notifications');
+const deviceRoutes = require('./routes/devices');
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use('/auth', authRoutes);
 app.use('/animals', animalRoutes);
 app.use('/sightings', sightingRoutes);
 app.use('/notifications', notificationRoutes);
+app.use('/devices', deviceRoutes);
 
 app.use((err, req, res, next) => {
   // Em teste, vários casos disparam este handler de propósito (arquivo inválido,
