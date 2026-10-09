@@ -19,12 +19,12 @@ function pushConfigurado() {
 
 function obterMessaging() {
   if (!appFirebase) {
-    const admin = require('firebase-admin');
+    const { initializeApp, cert } = require('firebase-admin/app');
     const credencial = lerCredencial();
     if (!credencial) return null;
-    appFirebase = admin.initializeApp({ credential: admin.credential.cert(credencial) });
+    appFirebase = initializeApp({ credential: cert(credencial) });
   }
-  return require('firebase-admin').messaging(appFirebase);
+  return require('firebase-admin/messaging').getMessaging(appFirebase);
 }
 
 const ERROS_TOKEN_INVALIDO = ['messaging/registration-token-not-registered', 'messaging/invalid-registration-token'];
