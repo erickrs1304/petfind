@@ -20,6 +20,13 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  // Telefones salvos antes da máscara aparecem só com dígitos; formata para exibir.
+  static String _mascarar(String? telefone, {String vazio = ''}) {
+    final digitos = (telefone ?? '').replaceAll(RegExp(r'\D'), '');
+    if (digitos.isEmpty) return vazio;
+    return formatarTelefone(digitos.length > 11 ? digitos.substring(0, 11) : digitos);
+  }
+
   bool _editando = false;
   bool _carregando = false;
   String? _erro;
@@ -34,7 +41,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     final usuario = context.read<AuthProvider>().usuario!;
     _nomeController = TextEditingController(text: usuario.nome);
-    _telefoneController = TextEditingController(text: usuario.telefone ?? '');
+    _telefoneController = TextEditingController(text: _mascarar(usuario.telefone));
     _regiaoController = TextEditingController(text: usuario.regiao);
   }
 
@@ -124,7 +131,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<Widget> _camposLeitura(Usuario usuario) => [
         _cardInfo(Icons.badge_outlined, 'Nome', usuario.nome),
         _cardInfo(Icons.email_outlined, 'E-mail', usuario.email),
-        _cardInfo(Icons.phone_outlined, 'Telefone', usuario.telefone ?? '-'),
+        _cardInfo(Icons.phone_outlined, 'Telefone', _mascarar(usuario.telefone, vazio: '-')),
         _cardInfo(Icons.place_outlined, 'Região', usuario.regiao),
       ];
 

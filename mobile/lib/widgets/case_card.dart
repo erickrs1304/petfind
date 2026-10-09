@@ -39,11 +39,22 @@ class CaseCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: AppTheme.primaryStrong.withValues(alpha: 0.12),
-                backgroundImage: animal.fotoUrlCompleta != null ? NetworkImage(animal.fotoUrlCompleta!) : null,
-                child: animal.fotoUrlCompleta == null ? Icon(_iconeEspecie, color: AppTheme.primaryStrong) : null,
+              Container(
+                width: 56,
+                height: 56,
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppTheme.primaryStrong.withValues(alpha: 0.12),
+                ),
+                child: animal.fotoUrlCompleta == null
+                    ? Icon(_iconeEspecie, color: AppTheme.primaryStrong)
+                    : Image.network(
+                        animal.fotoUrlCompleta!,
+                        fit: BoxFit.cover,
+                        // Foto indisponível (ex.: arquivo antigo) volta ao ícone da espécie.
+                        errorBuilder: (_, __, ___) => Icon(_iconeEspecie, color: AppTheme.primaryStrong),
+                      ),
               ),
               const SizedBox(width: 12),
               Expanded(
