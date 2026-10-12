@@ -56,7 +56,7 @@ async function enviarPush(notificacoes) {
             tipo: String(notificacao.tipo || ''),
             animalId: notificacao.referenciaAnimalId != null ? String(notificacao.referenciaAnimalId) : '',
           },
-          android: { priority: 'high' },
+          android: { priority: 'high', notification: { channelId: 'petfind_alertas', sound: 'default' } },
         });
       }
     }

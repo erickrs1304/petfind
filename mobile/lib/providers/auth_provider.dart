@@ -4,6 +4,7 @@ import '../data/api_client.dart';
 import '../data/models/usuario.dart';
 import '../data/repositories/auth_repository.dart';
 import '../services/push_service.dart';
+import '../utils/location_helper.dart';
 
 enum AuthStatus { carregando, autenticado, naoAutenticado }
 
@@ -57,6 +58,19 @@ class AuthProvider extends ChangeNotifier {
   void _iniciarPush() {
     PushService.instance.registrar();
     PushService.instance.liberarPendente();
+    _atualizarLocalizacao();
+  }
+
+  // RF-008: o servidor só avisa quem tem localização salva no perfil (calcula a
+  // distância até o caso). Quem se cadastrou sem GPS nunca seria notificado, então
+  // a posição é atualizada em segundo plano a cada vez que o app abre logado.
+  Future<void> _atualizarLocalizacao() async {
+    try {
+      final posicao = await obterLocalizacaoAtual();
+      await atualizarPerfil({'lat': posicao.latitude, 'lng': posicao.longitude});
+    } catch (_) {
+      // Sem GPS ou sem permissão: o perfil segue como está.
+    }
   }
 
   Future<void> register({

@@ -29,7 +29,10 @@ Future<Position> obterLocalizacaoAtual() async {
 
   try {
     return await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        timeLimit: Duration(seconds: 15),
+      ),
     );
   } catch (_) {
     throw const LocalizacaoException(_mensagemPadrao);

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../data/api_client.dart';
 
@@ -37,6 +38,7 @@ class PushService {
     try {
       await Firebase.initializeApp();
       _disponivel = true;
+      await _criarCanalAndroid();
     } catch (e) {
       debugPrint('Push desativado (Firebase não configurado): $e');
       return;
@@ -53,6 +55,20 @@ class PushService {
     // aberto depois do login restaurado (liberarPendente).
     final inicial = await FirebaseMessaging.instance.getInitialMessage();
     if (inicial != null) _casoPendente = _animalId(inicial);
+  }
+
+  // Canal de alta prioridade: o aviso aparece em destaque e com som na barra do Android,
+  // com o app em segundo plano ou fechado. Mesmo id usado no servidor e no AndroidManifest.
+  Future<void> _criarCanalAndroid() async {
+    if (defaultTargetPlatform != TargetPlatform.android) return;
+    final android = FlutterLocalNotificationsPlugin()
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    await android?.createNotificationChannel(const AndroidNotificationChannel(
+      'petfind_alertas',
+      'Alertas do PetFind',
+      description: 'Casos de animais perdidos e avistamentos perto de você.',
+      importance: Importance.high,
+    ));
   }
 
   int? _animalId(RemoteMessage mensagem) => int.tryParse('${mensagem.data['animalId'] ?? ''}');

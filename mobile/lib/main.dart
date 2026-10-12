@@ -25,31 +25,21 @@ class PetFindApp extends StatefulWidget {
 
 class _PetFindAppState extends State<PetFindApp> {
   final _navigatorKey = GlobalKey<NavigatorState>();
-  final _messengerKey = GlobalKey<ScaffoldMessengerState>();
 
   @override
   void initState() {
     super.initState();
-    PushService.instance.configurar(abrirCaso: _abrirCaso, aoReceberComAppAberto: _mostrarAviso);
+    PushService.instance.configurar(abrirCaso: _abrirCaso, aoReceberComAppAberto: _atualizarNotificacoes);
   }
 
   void _abrirCaso(int animalId) {
     _navigatorKey.currentState?.push(MaterialPageRoute(builder: (_) => CaseDetailScreen(animalId: animalId)));
   }
 
-  // Com o app aberto o sistema não mostra a notificação: atualiza a lista e avisa na tela.
-  void _mostrarAviso(String titulo, String corpo, int? animalId) {
+  // Com o app aberto não há aviso na tela: só a lista e o contador de Notificações se atualizam.
+  void _atualizarNotificacoes(String titulo, String corpo, int? animalId) {
     final contexto = _navigatorKey.currentContext;
     if (contexto != null) contexto.read<NotificationProvider>().carregar();
-    _messengerKey.currentState
-      ?..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(corpo.isEmpty ? titulo : '$titulo\n$corpo'),
-          duration: const Duration(seconds: 6),
-          action: animalId == null ? null : SnackBarAction(label: 'Abrir', onPressed: () => _abrirCaso(animalId)),
-        ),
-      );
   }
 
   @override
@@ -63,7 +53,6 @@ class _PetFindAppState extends State<PetFindApp> {
       child: MaterialApp(
         title: 'PetFind',
         navigatorKey: _navigatorKey,
-        scaffoldMessengerKey: _messengerKey,
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
         home: const _AuthGate(),
