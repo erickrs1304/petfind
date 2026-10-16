@@ -26,7 +26,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _senhaController = TextEditingController();
   final _confirmarSenhaController = TextEditingController();
   final _regiaoController = TextEditingController();
-  bool _localizacaoAutomatica = true;
+  // Desligado por padrão: a pessoa decide se a localização pode ser usada nos alertas (LGPD).
+  bool _localizacaoAutomatica = false;
   bool _carregando = false;
   String? _erro;
 
@@ -78,6 +79,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             nome: _nomeController.text.trim(),
             email: _emailController.text.trim(),
             telefone: _telefoneController.text.trim(),
+            usarLocalizacao: _localizacaoAutomatica,
             senha: _senhaController.text,
             confirmarSenha: _confirmarSenhaController.text,
             regiao: _regiaoController.text.trim(),
@@ -167,8 +169,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 contentPadding: EdgeInsets.zero,
                 value: _localizacaoAutomatica,
                 onChanged: (v) => setState(() => _localizacaoAutomatica = v),
-                title: const Text('Localização automática'),
-                subtitle: const Text('Para alertas por proximidade', style: TextStyle(fontSize: 12)),
+                title: const Text('Usar minha localização'),
+                subtitle: const Text('Para receber alertas de animais perdidos perto de você',
+                    style: TextStyle(fontSize: 12)),
               ),
               const SizedBox(height: 16),
               ElevatedButton(

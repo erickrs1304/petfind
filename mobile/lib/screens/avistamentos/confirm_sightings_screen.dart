@@ -72,6 +72,7 @@ class _ConfirmSightingsScreenState extends State<ConfirmSightingsScreen> with Si
         title: const Text('Confirmar avistamento'),
         content: TextField(
           controller: controller,
+          maxLength: 300,
           decoration: const InputDecoration(hintText: 'Deseja adicionar algum comentário sobre este avistamento?'),
         ),
         actions: [
@@ -241,6 +242,10 @@ class _ConfirmSightingsScreenState extends State<ConfirmSightingsScreen> with Si
           if (avistamento.comentario != null && avistamento.comentario!.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(avistamento.comentario!),
+          ],
+          if (avistamento.comentarioTutor != null && avistamento.comentarioTutor!.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text('Comentário do tutor: ${avistamento.comentarioTutor}', style: const TextStyle(fontStyle: FontStyle.italic)),
           ],
           if (avistamento.fotoUrlCompleta != null) ...[
             const SizedBox(height: 8),

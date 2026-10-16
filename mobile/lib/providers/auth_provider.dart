@@ -62,9 +62,11 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // RF-008: o servidor só avisa quem tem localização salva no perfil (calcula a
-  // distância até o caso). Quem se cadastrou sem GPS nunca seria notificado, então
-  // a posição é atualizada em segundo plano a cada vez que o app abre logado.
+  // distância até o caso). Com os alertas por proximidade ligados, a posição é
+  // atualizada em segundo plano a cada vez que o app abre logado; desligados, o app
+  // não usa a localização do usuário.
   Future<void> _atualizarLocalizacao() async {
+    if (usuario?.notificacoesAtivas != true) return;
     try {
       final posicao = await obterLocalizacaoAtual();
       await atualizarPerfil({'lat': posicao.latitude, 'lng': posicao.longitude});
@@ -80,6 +82,7 @@ class AuthProvider extends ChangeNotifier {
     required String senha,
     required String confirmarSenha,
     required String regiao,
+    required bool usarLocalizacao,
     double? lat,
     double? lng,
   }) {
@@ -90,6 +93,7 @@ class AuthProvider extends ChangeNotifier {
       senha: senha,
       confirmarSenha: confirmarSenha,
       regiao: regiao,
+      notificacoesAtivas: usarLocalizacao,
       lat: lat,
       lng: lng,
     );
@@ -113,6 +117,16 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> atualizarPerfil(Map<String, dynamic> dados) async {
     usuario = await _repository.updateProfile(dados);
+    notifyListeners();
+  }
+
+  // RF-001 - exclusão da conta. O servidor já apagou os aparelhos cadastrados para
+  // push junto com a conta, então aqui só resta limpar a sessão local.
+  Future<void> excluirConta(String senha) async {
+    await _repository.excluirConta(senha: senha);
+    await _repository.logout();
+    usuario = null;
+    status = AuthStatus.naoAutenticado;
     notifyListeners();
   }
 

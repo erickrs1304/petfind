@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:provider/provider.dart';
 
 import '../../data/api_client.dart';
 import '../../data/models/animal.dart';
 import '../../data/models/picked_photo.dart';
 import '../../data/repositories/animal_repository.dart';
+import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
 import '../../utils/location_helper.dart';
 import '../../widgets/app_snackbar.dart';
@@ -13,6 +17,7 @@ import '../../widgets/app_text_field.dart';
 import '../../widgets/dashed_photo_picker.dart';
 import '../../widgets/location_capture_card.dart';
 import '../../widgets/petfind_header.dart';
+import 'pick_location_screen.dart';
 
 // RF-004 - Manter Animal Perdido: cadastro (Figura 7) e edição (fluxo 3.2).
 // A mesma tela atende os dois fluxos; passar [animalParaEditar] ativa o modo de edição.
@@ -41,15 +46,14 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
   DateTime? _dataDesaparecimento;
   PickedPhoto? _foto;
 
-  // Coordenada do desaparecimento que será enviada. No cadastro vem do GPS; na
-  // edição começa com a que já está salva e só muda se o tutor pedir.
+  // Ponto do desaparecimento que será enviado. O tutor marca no mapa ou usa a própria
+  // localização atual; na edição começa com o ponto já salvo. Nada é capturado sem ele pedir.
   double? _lat;
   double? _lng;
 
   bool _obtendoLocalizacao = false;
   bool _carregando = false;
   String? _erro;
-  String? _erroLocalizacao;
 
   bool get _editando => widget.animalParaEditar != null;
 
@@ -67,8 +71,6 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
       _dataDesaparecimento = animal.dataDesaparecimento;
       _lat = animal.lat;
       _lng = animal.lng;
-    } else {
-      _obterLocalizacao();
     }
   }
 
@@ -82,10 +84,7 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
   }
 
   Future<void> _obterLocalizacao() async {
-    setState(() {
-      _obtendoLocalizacao = true;
-      _erroLocalizacao = null;
-    });
+    setState(() => _obtendoLocalizacao = true);
     try {
       final posicao = await obterLocalizacaoAtual();
       setState(() {
@@ -93,9 +92,34 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
         _lng = posicao.longitude;
       });
     } on LocalizacaoException catch (e) {
-      setState(() => _erroLocalizacao = e.message);
+      // Sem GPS o tutor ainda pode marcar o ponto no mapa.
+      if (mounted) showAppSnackBar(context, e.message, type: AppSnackType.error);
     } finally {
       if (mounted) setState(() => _obtendoLocalizacao = false);
+    }
+  }
+
+  // O mapa começa no ponto já marcado, na localização do perfil ou no centro padrão.
+  Future<void> _marcarNoMapa() async {
+    // Sem isso, o campo de endereço recupera o foco na volta e o teclado abre sozinho.
+    FocusScope.of(context).unfocus();
+    final usuario = context.read<AuthProvider>().usuario;
+    final LatLng inicial;
+    if (_lat != null && _lng != null) {
+      inicial = LatLng(_lat!, _lng!);
+    } else if (usuario?.lat != null && usuario?.lng != null) {
+      inicial = LatLng(usuario!.lat!, usuario.lng!);
+    } else {
+      inicial = const LatLng(kCentroPadraoLat, kCentroPadraoLng);
+    }
+    final ponto = await Navigator.of(context).push<LatLng>(
+      MaterialPageRoute(builder: (_) => PickLocationScreen(inicial: inicial)),
+    );
+    if (ponto != null) {
+      setState(() {
+        _lat = ponto.latitude;
+        _lng = ponto.longitude;
+      });
     }
   }
 
@@ -125,18 +149,30 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
     });
   }
 
+  // O texto de erro fica no topo do formulário, longe do botão "Publicar Alerta";
+  // o aviso na base da tela garante que quem tocou no botão veja a mensagem.
+  void _mostrarErro(String mensagem) {
+    setState(() => _erro = mensagem);
+    showAppSnackBar(context, mensagem, type: AppSnackType.error);
+  }
+
   Future<void> _salvar() async {
     if (!_formKey.currentState!.validate()) return;
+    // Foto obrigatória no cadastro (Quadro 14); na edição vale a foto já salva.
+    if (!_editando && _foto == null) {
+      _mostrarErro('Adicione uma foto do animal.');
+      return;
+    }
     if (_dataDesaparecimento == null) {
-      setState(() => _erro = 'Informe a data do desaparecimento.');
+      _mostrarErro('Informe a data do desaparecimento.');
       return;
     }
     if (_localizacaoController.text.trim().isEmpty) {
-      setState(() => _erro = 'Informe a última localização do animal.');
+      _mostrarErro('Informe a última localização do animal.');
       return;
     }
     if (_lat == null || _lng == null) {
-      setState(() => _erro = 'Não foi possível obter sua localização. Ative o GPS e tente novamente.');
+      _mostrarErro('Marque no mapa o ponto do desaparecimento.');
       return;
     }
 
@@ -184,10 +220,11 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
       );
       Navigator.of(context).pop(true);
     } catch (e) {
-      setState(() => _erro = extractErrorMessage(
-            e,
-            fallback: _editando ? 'Não foi possível salvar as alterações.' : 'Não foi possível registrar o caso.',
-          ));
+      if (!mounted) return;
+      _mostrarErro(extractErrorMessage(
+        e,
+        fallback: _editando ? 'Não foi possível salvar as alterações.' : 'Não foi possível registrar o caso.',
+      ));
     } finally {
       if (mounted) setState(() => _carregando = false);
     }
@@ -311,7 +348,7 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
               const Padding(
                 padding: EdgeInsets.only(top: 6, bottom: 12),
                 child: Text(
-                  'Referência legível — a coordenada GPS exata é capturada abaixo.',
+                  'Referência legível — o ponto exato é marcado abaixo.',
                   style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
                 ),
               ),
@@ -319,25 +356,32 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
                 obtendo: _obtendoLocalizacao,
                 lat: _lat,
                 lng: _lng,
-                erro: _erroLocalizacao,
+                erro: null,
                 onRetry: _obterLocalizacao,
-                mostrarHorario: !_editando,
-                tituloOk: _editando
-                    ? 'Ponto do desaparecimento registrado neste caso'
-                    : 'GPS capturado — este é o ponto do desaparecimento',
-                // Na edição a coordenada salva é preservada por padrão: recapturar o
-                // GPS aqui moveria o ponto do desaparecimento para onde o tutor está agora.
-                acaoExtra: _editando
-                    ? TextButton.icon(
-                        onPressed: _obtendoLocalizacao ? null : _obterLocalizacao,
-                        icon: const Icon(Icons.my_location, size: 18),
-                        label: const Text('Atualizar com meu GPS atual'),
-                      )
-                    : null,
+                mostrarHorario: false,
+                tituloObtendo: 'Obtendo sua localização atual...',
+                tituloOk: _lat == null
+                    ? 'Marque o ponto onde o animal foi visto pela última vez'
+                    : 'Ponto do desaparecimento marcado',
+                acaoExtra: Wrap(
+                  spacing: 4,
+                  children: [
+                    TextButton.icon(
+                      onPressed: _obtendoLocalizacao ? null : _marcarNoMapa,
+                      icon: const Icon(Icons.map_outlined, size: 18),
+                      label: Text(_lat == null ? 'Marcar no mapa' : 'Alterar no mapa'),
+                    ),
+                    TextButton.icon(
+                      onPressed: _obtendoLocalizacao ? null : _obterLocalizacao,
+                      icon: const Icon(Icons.my_location, size: 18),
+                      label: const Text('Usar minha localização atual'),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 24),
               ElevatedButton.icon(
-                onPressed: (_carregando || _lat == null) ? null : _salvar,
+                onPressed: _carregando ? null : _salvar,
                 icon: _carregando ? null : Icon(_editando ? Icons.save_outlined : Icons.campaign_outlined),
                 label: _carregando
                     ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))

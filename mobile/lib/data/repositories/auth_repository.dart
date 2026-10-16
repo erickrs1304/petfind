@@ -11,6 +11,7 @@ class AuthRepository {
     required String senha,
     required String confirmarSenha,
     required String regiao,
+    required bool notificacoesAtivas,
     double? lat,
     double? lng,
   }) async {
@@ -21,6 +22,7 @@ class AuthRepository {
       'senha': senha,
       'confirmarSenha': confirmarSenha,
       'regiao': regiao,
+      'notificacoesAtivas': notificacoesAtivas,
       if (lat != null) 'lat': lat,
       if (lng != null) 'lng': lng,
     });
@@ -63,4 +65,7 @@ class AuthRepository {
     final response = await _dio.put('/auth/me', data: dados);
     return Usuario.fromJson(response.data as Map<String, dynamic>);
   }
+
+  /// RF-001 - exclusão da conta; o servidor exige a senha como confirmação.
+  Future<void> excluirConta({required String senha}) => _dio.delete('/auth/me', data: {'senha': senha});
 }

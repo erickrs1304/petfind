@@ -1,5 +1,6 @@
 const path = require('path');
 const crypto = require('crypto');
+const fs = require('fs/promises');
 const multer = require('multer');
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB (RF-004 / RF-006)
@@ -70,7 +71,35 @@ function urlDaFoto(file) {
   return file.publicUrl || `/uploads/${file.filename}`;
 }
 
+// Apaga do Storage (ou do disco) a foto de um caso/avistamento excluído ou
+// substituído. Uma falha aqui não desfaz a exclusão no banco — a foto órfã não
+// aparece para ninguém —, então o erro só é registrado.
+async function removerFoto(url) {
+  if (!url) return;
+  try {
+    if (url.startsWith('/uploads/')) {
+      await fs.unlink(path.join(__dirname, '..', '..', 'uploads', path.basename(url)));
+      return;
+    }
+    if (!usaStorage()) return;
+    const base = process.env.SUPABASE_URL.replace(/\/$/, '');
+    const prefixo = `${base}/storage/v1/object/public/${BUCKET}/`;
+    if (!url.startsWith(prefixo)) return;
+    const resposta = await fetch(`${base}/storage/v1/object/${BUCKET}/${url.slice(prefixo.length)}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}`,
+        apikey: process.env.SUPABASE_SERVICE_KEY,
+      },
+    });
+    if (!resposta.ok) throw new Error(`Storage respondeu ${resposta.status}`);
+  } catch (err) {
+    if (err.code !== 'ENOENT') console.error('Falha ao apagar foto:', err);
+  }
+}
+
 module.exports = {
   single: (campo) => [multerUpload.single(campo), enviarParaStorage],
   urlDaFoto,
+  removerFoto,
 };

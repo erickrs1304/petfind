@@ -18,4 +18,8 @@ const sightingSchema = z.object({
   comentario: z.string().max(300).optional(),
 });
 
-module.exports = { createAnimalSchema, sightingSchema };
+const confirmSightingSchema = z.object({
+  comentario: z.string().max(300).optional(),
+});
+
+module.exports = { createAnimalSchema, sightingSchema, confirmSightingSchema };

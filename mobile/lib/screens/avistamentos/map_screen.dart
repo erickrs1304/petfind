@@ -149,6 +149,11 @@ class _MapScreenState extends State<MapScreen> {
                           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                           userAgentPackageName: 'com.petfind.app',
                         ),
+                        // Crédito exigido pela licença do OpenStreetMap; no topo porque a legenda ocupa a base.
+                        const SimpleAttributionWidget(
+                          source: Text('colaboradores do OpenStreetMap'),
+                          alignment: Alignment.topRight,
+                        ),
                         CircleLayer(circles: [
                           CircleMarker(
                             point: centroRaio,
@@ -305,6 +310,10 @@ class _MapScreenState extends State<MapScreen> {
           if (avistamento.comentario != null && avistamento.comentario!.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(avistamento.comentario!),
+          ],
+          if (avistamento.comentarioTutor != null && avistamento.comentarioTutor!.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text('Comentário do tutor: ${avistamento.comentarioTutor}', style: const TextStyle(fontStyle: FontStyle.italic)),
           ],
           if (avistamento.fotoUrlCompleta != null) ...[
             const SizedBox(height: 12),

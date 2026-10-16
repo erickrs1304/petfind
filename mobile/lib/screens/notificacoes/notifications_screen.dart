@@ -4,8 +4,11 @@ import 'package:provider/provider.dart';
 import '../../data/models/notificacao.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/notification_provider.dart';
+import '../../data/api_client.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/formatters.dart';
+import '../../utils/location_helper.dart';
+import '../../widgets/app_snackbar.dart';
 import '../../widgets/petfind_header.dart';
 import '../../widgets/state_views.dart';
 import '../casos/case_detail_screen.dart';
@@ -78,9 +81,10 @@ class NotificationsScreen extends StatelessWidget {
               decoration: BoxDecoration(color: AppTheme.surfaceCard, borderRadius: BorderRadius.circular(14)),
               child: SwitchListTile(
                 value: auth.usuario?.notificacoesAtivas ?? true,
-                onChanged: (v) => auth.atualizarPerfil({'notificacoesAtivas': v}),
+                onChanged: (v) => _alterarAlertas(context, auth, v),
                 title: const Text('Alertas por proximidade'),
-                subtitle: const Text('Receber notificações da região', style: TextStyle(fontSize: 12)),
+                subtitle: const Text('Usa sua localização para avisar sobre animais perdidos perto de você',
+                    style: TextStyle(fontSize: 12)),
               ),
             ),
             const SizedBox(height: 8),
@@ -133,6 +137,23 @@ class NotificationsScreen extends StatelessWidget {
         },
       ),
     );
+  }
+
+  // Os alertas por proximidade dependem da localização: ligá-los autoriza o uso da posição
+  // do aparelho; desligá-los apaga a localização salva no perfil.
+  Future<void> _alterarAlertas(BuildContext context, AuthProvider auth, bool ligar) async {
+    try {
+      if (!ligar) {
+        await auth.atualizarPerfil({'notificacoesAtivas': false, 'lat': null, 'lng': null});
+        return;
+      }
+      final posicao = await obterLocalizacaoAtual();
+      await auth.atualizarPerfil({'notificacoesAtivas': true, 'lat': posicao.latitude, 'lng': posicao.longitude});
+    } on LocalizacaoException catch (e) {
+      if (context.mounted) showAppSnackBar(context, e.message, type: AppSnackType.error);
+    } catch (e) {
+      if (context.mounted) showAppSnackBar(context, extractErrorMessage(e), type: AppSnackType.error);
+    }
   }
 
   Future<void> _editarRaio(BuildContext context, AuthProvider auth) async {

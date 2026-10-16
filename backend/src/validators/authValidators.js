@@ -9,6 +9,7 @@ const registerSchema = z.object({
   regiao: z.string().min(1).max(150),
   lat: z.number().optional(),
   lng: z.number().optional(),
+  notificacoesAtivas: z.boolean().optional(),
 });
 
 const loginSchema = z.object({
@@ -30,10 +31,14 @@ const updateProfileSchema = z.object({
   telefone: z.string().min(1).max(20).optional(),
   regiao: z.string().min(1).max(150).optional(),
   senha: z.string().min(6).optional(),
-  lat: z.number().optional(),
-  lng: z.number().optional(),
+  lat: z.number().nullable().optional(),
+  lng: z.number().nullable().optional(),
   raioNotificacaoKm: z.number().positive().optional(),
   notificacoesAtivas: z.boolean().optional(),
 });
 
-module.exports = { registerSchema, loginSchema, forgotSchema, resetSchema, updateProfileSchema };
+const deleteAccountSchema = z.object({
+  senha: z.string().min(1),
+});
+
+module.exports = { registerSchema, loginSchema, forgotSchema, resetSchema, updateProfileSchema, deleteAccountSchema };

@@ -35,6 +35,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late final TextEditingController _telefoneController;
   late final TextEditingController _regiaoController;
   final _novaSenhaController = TextEditingController();
+  final _senhaExclusaoController = TextEditingController();
 
   @override
   void initState() {
@@ -65,6 +66,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } finally {
       if (mounted) setState(() => _carregando = false);
     }
+  }
+
+  // RF-001 - exclusão da conta: pede a senha porque apaga tudo e não tem volta.
+  Future<void> _excluirConta() async {
+    _senhaExclusaoController.clear();
+    final confirmou = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Excluir conta?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Seus dados, os casos que você cadastrou, os avistamentos que registrou e as fotos '
+                'serão apagados. Essa ação não pode ser desfeita.'),
+            const SizedBox(height: 16),
+            AppTextField(label: 'Confirme sua senha', controller: _senhaExclusaoController, obscureText: true),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.dangerStrong),
+            child: const Text('Excluir conta'),
+          ),
+        ],
+      ),
+    );
+    if (confirmou != true || !mounted) return;
+    setState(() {
+      _carregando = true;
+      _erro = null;
+    });
+    try {
+      await context.read<AuthProvider>().excluirConta(_senhaExclusaoController.text);
+      if (!mounted) return;
+      showAppSnackBar(context, 'Conta excluída.', type: AppSnackType.success);
+    } catch (e) {
+      if (mounted) setState(() => _erro = extractErrorMessage(e, fallback: 'Não foi possível excluir a conta.'));
+    } finally {
+      if (mounted) setState(() => _carregando = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _senhaExclusaoController.dispose();
+    super.dispose();
   }
 
   @override
@@ -122,6 +172,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onPressed: () => context.read<AuthProvider>().logout(),
               child: const Text('Sair'),
             ),
+            if (!_editando) ...[
+              const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: _carregando ? null : _excluirConta,
+                style: TextButton.styleFrom(foregroundColor: AppTheme.dangerStrong),
+                icon: const Icon(Icons.delete_outline),
+                label: const Text('Excluir conta'),
+              ),
+            ],
           ],
         ),
       ),

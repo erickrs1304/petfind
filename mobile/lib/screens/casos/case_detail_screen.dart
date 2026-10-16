@@ -7,6 +7,7 @@ import '../../data/repositories/animal_repository.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/formatters.dart';
+import '../../widgets/app_snackbar.dart';
 import '../../widgets/petfind_header.dart';
 import '../../widgets/state_views.dart';
 import '../../widgets/status_chip.dart';
@@ -50,7 +51,8 @@ class _CaseDetailScreenState extends State<CaseDetailScreen> {
       final avistamentos = await _repository.listarAvistamentos(widget.animalId);
       setState(() {
         _animal = animal;
-        _totalAvistamentos = avistamentos.length;
+        // Avistamentos excluídos pelo tutor não aparecem nem entram na contagem (RF-010).
+        _totalAvistamentos = avistamentos.where((a) => a.status != 'REJEITADO').length;
         _avistamentosPendentes = avistamentos.where((a) => a.status == 'PENDENTE').length;
       });
     } catch (e) {
@@ -73,6 +75,36 @@ class _CaseDetailScreenState extends State<CaseDetailScreen> {
       MaterialPageRoute(builder: (_) => CreateCaseScreen(animalParaEditar: _animal!)),
     );
     if (salvo == true) _carregar();
+  }
+
+  // RF-004 - exclusão do caso pelo tutor, com confirmação.
+  Future<void> _excluirCaso() async {
+    final confirmou = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Excluir caso?'),
+        content: const Text('O caso, os avistamentos registrados nele e as fotos serão apagados. '
+            'Essa ação não pode ser desfeita.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.dangerStrong),
+            child: const Text('Sim, excluir'),
+          ),
+        ],
+      ),
+    );
+    if (confirmou != true || !mounted) return;
+    try {
+      await _repository.excluir(_animal!.id);
+      if (!mounted) return;
+      showAppSnackBar(context, 'Caso excluído.', type: AppSnackType.success);
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      if (!mounted) return;
+      showAppSnackBar(context, extractErrorMessage(e, fallback: 'Não foi possível excluir o caso.'), type: AppSnackType.error);
+    }
   }
 
   Future<void> _revisarAvistamentos() async {
@@ -167,6 +199,15 @@ class _CaseDetailScreenState extends State<CaseDetailScreen> {
                           style: ElevatedButton.styleFrom(backgroundColor: AppTheme.successStrong),
                           icon: const Icon(Icons.check_circle_outline),
                           label: const Text('Animal encontrado!'),
+                        ),
+                      ],
+                      if (ehTutor) ...[
+                        const SizedBox(height: 12),
+                        TextButton.icon(
+                          onPressed: _excluirCaso,
+                          style: TextButton.styleFrom(foregroundColor: AppTheme.dangerStrong),
+                          icon: const Icon(Icons.delete_outline),
+                          label: const Text('Excluir caso'),
                         ),
                       ],
                     ],

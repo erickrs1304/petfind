@@ -99,6 +99,9 @@ class AnimalRepository {
     return Animal.fromJson(response.data as Map<String, dynamic>);
   }
 
+  /// RF-004 - exclusão do caso pelo tutor (apaga também os avistamentos e as fotos).
+  Future<void> excluir(int id) => _dio.delete('/animals/$id');
+
   Future<Animal> encerrarCaso(int id) async {
     final response = await _dio.post('/animals/$id/close');
     return Animal.fromJson(response.data as Map<String, dynamic>);

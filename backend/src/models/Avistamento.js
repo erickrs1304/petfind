@@ -32,6 +32,11 @@ const Avistamento = sequelize.define('Avistamento', {
     type: DataTypes.STRING(300),
     allowNull: true,
   },
+  // RF-010: comentário opcional do tutor ao confirmar; fica separado do de quem registrou.
+  comentarioTutor: {
+    type: DataTypes.STRING(300),
+    allowNull: true,
+  },
   fotoUrl: {
     type: DataTypes.STRING,
     allowNull: true,

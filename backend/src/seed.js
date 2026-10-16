@@ -11,7 +11,8 @@ async function seed() {
 
   const senhaHash = await bcrypt.hash('123456', 10);
 
-  const [ana, bruno, carla, diego] = await Usuario.bulkCreate([
+  // O quarto usuário (Diego) só existe para testar o raio de notificação; não é referenciado depois.
+  const [ana, bruno, carla] = await Usuario.bulkCreate([
     { nome: 'Ana Souza', email: 'ana@petfind.com', telefone: '(64) 99999-0001', senhaHash, regiao: 'Setor Central, Rio Verde', lat: BASE_LAT, lng: BASE_LNG, raioNotificacaoKm: 5 },
     { nome: 'Bruno Lima', email: 'bruno@petfind.com', telefone: '(64) 99999-0002', senhaHash, regiao: 'Vila Borges, Rio Verde', lat: BASE_LAT + 0.01, lng: BASE_LNG + 0.008, raioNotificacaoKm: 5 },
     { nome: 'Carla Nunes', email: 'carla@petfind.com', telefone: '(64) 99999-0003', senhaHash, regiao: 'Jardim Goiás, Rio Verde', lat: BASE_LAT - 0.015, lng: BASE_LNG + 0.012, raioNotificacaoKm: 5 },

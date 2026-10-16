@@ -2,6 +2,7 @@ const express = require('express');
 const { Avistamento, Animal, Notificacao } = require('../models');
 const authMiddleware = require('../middleware/auth');
 const { enviarPush } = require('../services/pushService');
+const { confirmSightingSchema } = require('../validators/animalValidators');
 
 const router = express.Router();
 router.use(authMiddleware);
@@ -27,11 +28,17 @@ async function carregarAvistamentoDoTutor(req, res, statusPermitidos) {
 
 // RF-010 - Confirmar avistamento (passa a compor a trajetória no mapa)
 router.post('/:id/confirm', async (req, res) => {
+  const parsed = confirmSightingSchema.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'O comentário deve ter no máximo 300 caracteres.' });
+  }
+
   const avistamento = await carregarAvistamentoDoTutor(req, res, ['PENDENTE']);
   if (!avistamento) return;
 
   avistamento.status = 'CONFIRMADO';
-  if (req.body?.comentario) avistamento.comentario = req.body.comentario;
+  // O comentário de quem registrou o avistamento é mantido; o do tutor vai em campo próprio.
+  if (parsed.data.comentario) avistamento.comentarioTutor = parsed.data.comentario;
   await avistamento.save();
 
   const notificacao = {

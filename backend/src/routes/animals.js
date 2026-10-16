@@ -3,13 +3,14 @@ const { Op } = require('sequelize');
 const { Animal, Avistamento, Usuario } = require('../models');
 const authMiddleware = require('../middleware/auth');
 const upload = require('../middleware/upload');
-const { urlDaFoto } = upload;
+const { urlDaFoto, removerFoto } = upload;
 const { haversineDistanceKm } = require('../utils/geo');
 const {
   notificarNovoCaso,
   notificarNovoAvistamento,
   notificarCasoEncerrado,
 } = require('../services/notificationService');
+const { excluirCaso } = require('../services/exclusaoService');
 const { createAnimalSchema, sightingSchema } = require('../validators/animalValidators');
 
 const router = express.Router();
@@ -57,6 +58,9 @@ router.post('/', upload.single('foto'), async (req, res) => {
     return res.status(400).json({ error: 'Preencha todos os campos obrigatórios corretamente.', detalhes: parsed.error.flatten() });
   }
   const data = parsed.data;
+  if (!req.file) {
+    return res.status(400).json({ error: 'Adicione uma foto do animal.' });
+  }
 
   const dataDesaparecimento = new Date(data.dataDesaparecimento);
   if (dataDesaparecimento > new Date()) {
@@ -100,11 +104,24 @@ router.put('/:id', upload.single('foto'), async (req, res) => {
     return res.status(400).json({ error: 'A data não pode ser futura.' });
   }
 
+  const fotoAntiga = animal.fotoUrl;
   Object.assign(animal, parsed.data);
   if (req.file) animal.fotoUrl = urlDaFoto(req.file);
   await animal.save();
+  if (req.file) await removerFoto(fotoAntiga);
 
   return res.json(animal);
+});
+
+// RF-004 - Excluir caso (só o tutor). Apaga também os avistamentos e as fotos.
+router.delete('/:id', async (req, res) => {
+  const animal = await Animal.findByPk(req.params.id);
+  if (!animal) return res.status(404).json({ error: 'Caso não encontrado.' });
+  if (animal.usuarioId !== req.userId) return res.status(403).json({ error: 'Você não tem permissão para excluir este caso.' });
+
+  await excluirCaso(animal);
+
+  return res.json({ message: 'Caso excluído.' });
 });
 
 // RF-009 - Encerrar caso (marcar como encontrado)

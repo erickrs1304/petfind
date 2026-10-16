@@ -1,4 +1,6 @@
-const { registerSchema, loginSchema, resetSchema, updateProfileSchema } = require('../src/validators/authValidators');
+const {
+  registerSchema, loginSchema, resetSchema, updateProfileSchema, deleteAccountSchema,
+} = require('../src/validators/authValidators');
 const { createAnimalSchema, sightingSchema } = require('../src/validators/animalValidators');
 
 // Teste unitário puro (sem app/banco/HTTP): valida os schemas Zod diretamente,
@@ -43,6 +45,17 @@ describe('authValidators', () => {
 
   it('updateProfileSchema rejeita raioNotificacaoKm negativo', () => {
     expect(updateProfileSchema.safeParse({ raioNotificacaoKm: -5 }).success).toBe(false);
+  });
+
+  it('aceita a escolha de não usar a localização: alertas desligados no cadastro e lat/lng nulos no perfil', () => {
+    expect(registerSchema.safeParse({ ...cadastroValido, notificacoesAtivas: false }).success).toBe(true);
+    expect(updateProfileSchema.safeParse({ notificacoesAtivas: false, lat: null, lng: null }).success).toBe(true);
+  });
+
+  it('deleteAccountSchema exige a senha para confirmar a exclusão da conta', () => {
+    expect(deleteAccountSchema.safeParse({}).success).toBe(false);
+    expect(deleteAccountSchema.safeParse({ senha: '' }).success).toBe(false);
+    expect(deleteAccountSchema.safeParse({ senha: 'senha123' }).success).toBe(true);
   });
 });
 

@@ -13,7 +13,7 @@ class RootShell extends StatefulWidget {
   State<RootShell> createState() => _RootShellState();
 }
 
-class _RootShellState extends State<RootShell> {
+class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
   int _indiceAtual = 0;
 
   final _telas = const [HomeScreen(), NotificationsScreen(), ProfileScreen()];
@@ -21,9 +21,23 @@ class _RootShellState extends State<RootShell> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<NotificationProvider>().carregar();
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // Push recebido com o app em segundo plano não passa pelo onMessage: a lista e o
+  // contador de Notificações são atualizados quando o app volta para a frente.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) context.read<NotificationProvider>().carregar();
   }
 
   @override
@@ -34,7 +48,10 @@ class _RootShellState extends State<RootShell> {
       body: IndexedStack(index: _indiceAtual, children: _telas),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _indiceAtual,
-        onDestinationSelected: (i) => setState(() => _indiceAtual = i),
+        onDestinationSelected: (i) {
+          setState(() => _indiceAtual = i);
+          if (i == 1) context.read<NotificationProvider>().carregar();
+        },
         destinations: [
           const NavigationDestination(icon: Icon(Icons.pets_outlined), selectedIcon: Icon(Icons.pets), label: 'Casos'),
           NavigationDestination(

@@ -4,12 +4,14 @@ const { Usuario } = require('../models');
 const { signToken } = require('../utils/jwt');
 const authMiddleware = require('../middleware/auth');
 const { emailConfigurado, enviarCodigoRecuperacao } = require('../services/emailService');
+const { excluirConta } = require('../services/exclusaoService');
 const {
   registerSchema,
   loginSchema,
   forgotSchema,
   resetSchema,
   updateProfileSchema,
+  deleteAccountSchema,
 } = require('../validators/authValidators');
 
 const router = express.Router();
@@ -23,7 +25,12 @@ router.post('/register', async (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({ error: 'Preencha todos os campos obrigatórios corretamente.', detalhes: parsed.error.flatten() });
   }
-  const { nome, email, telefone, senha, confirmarSenha, regiao, lat, lng } = parsed.data;
+  const { nome, email, telefone, senha, confirmarSenha, regiao, notificacoesAtivas } = parsed.data;
+  // A localização só é guardada com os alertas por proximidade ligados (escolha do usuário, LGPD).
+  // Sem o campo (versões antigas do app), vale o padrão do modelo: alertas ligados.
+  const usaLocalizacao = notificacoesAtivas !== false;
+  const lat = usaLocalizacao ? parsed.data.lat : null;
+  const lng = usaLocalizacao ? parsed.data.lng : null;
 
   if (senha !== confirmarSenha) {
     return res.status(400).json({ error: 'As senhas não coincidem.' });
@@ -35,7 +42,9 @@ router.post('/register', async (req, res) => {
   }
 
   const senhaHash = await bcrypt.hash(senha, 10);
-  const usuario = await Usuario.create({ nome, email, telefone, senhaHash, regiao, lat, lng });
+  const usuario = await Usuario.create({
+    nome, email, telefone, senhaHash, regiao, lat, lng, notificacoesAtivas: usaLocalizacao,
+  });
 
   return res.status(201).json({
     message: 'Cadastro realizado com sucesso!',
@@ -87,10 +96,12 @@ router.post('/login', async (req, res) => {
       id: usuario.id,
       nome: usuario.nome,
       email: usuario.email,
+      telefone: usuario.telefone,
       regiao: usuario.regiao,
       lat: usuario.lat,
       lng: usuario.lng,
       raioNotificacaoKm: usuario.raioNotificacaoKm,
+      notificacoesAtivas: usuario.notificacoesAtivas,
     },
   });
 });
@@ -191,11 +202,37 @@ router.put('/me', authMiddleware, async (req, res) => {
 
   const { senha, ...resto } = parsed.data;
   Object.assign(usuario, resto);
+  // Com os alertas por proximidade desligados, a localização não é guardada (e a salva é apagada),
+  // mesmo que um aparelho com versão antiga do app continue enviando a posição.
+  if (!usuario.notificacoesAtivas) {
+    usuario.lat = null;
+    usuario.lng = null;
+  }
   if (senha) usuario.senhaHash = await bcrypt.hash(senha, 10);
   await usuario.save();
 
   const { senhaHash, resetCode, resetCodeExpiraEm, ...usuarioSeguro } = usuario.toJSON();
   return res.json(usuarioSeguro);
+});
+
+// RF-001 - Excluir a própria conta. Pede a senha para confirmar, porque não tem volta.
+// Senha errada responde 400, não 401: o app trata 401 como sessão expirada e deslogaria.
+router.delete('/me', authMiddleware, async (req, res) => {
+  const parsed = deleteAccountSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Informe sua senha para excluir a conta.' });
+  }
+  const usuario = await Usuario.findByPk(req.userId);
+  if (!usuario) return res.status(404).json({ error: 'Usuário não encontrado.' });
+
+  const senhaCorreta = await bcrypt.compare(parsed.data.senha, usuario.senhaHash);
+  if (!senhaCorreta) {
+    return res.status(400).json({ error: 'Senha incorreta.' });
+  }
+
+  await excluirConta(usuario);
+
+  return res.json({ message: 'Conta excluída.' });
 });
 
 module.exports = router;

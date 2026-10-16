@@ -18,3 +18,8 @@ String get kApiBaseUrl {
 }
 
 const double kDefaultNotificationRadiusKm = 5;
+
+// Centro do mapa de marcação do ponto do desaparecimento quando não há ponto marcado nem
+// localização no perfil (Rio Verde - GO).
+const double kCentroPadraoLat = -17.7929;
+const double kCentroPadraoLng = -50.9188;
