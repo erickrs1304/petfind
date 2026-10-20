@@ -11,6 +11,7 @@ const animalRoutes = require('./routes/animals');
 const sightingRoutes = require('./routes/sightings');
 const notificationRoutes = require('./routes/notifications');
 const deviceRoutes = require('./routes/devices');
+const paginasRoutes = require('./routes/paginas');
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
+app.use('/', paginasRoutes);
 
 app.use('/auth', authRoutes);
 app.use('/animals', animalRoutes);
