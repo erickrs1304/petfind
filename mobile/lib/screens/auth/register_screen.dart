@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../data/api_client.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/location_helper.dart';
 import '../../utils/phone_formatter.dart';
 import '../../utils/politica_privacidade.dart';
 import '../../widgets/app_snackbar.dart';
@@ -29,6 +30,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _regiaoController = TextEditingController();
   // Desligado por padrão: a pessoa decide se a localização pode ser usada nos alertas (LGPD).
   bool _localizacaoAutomatica = false;
+  bool _obtendoLocalizacao = false;
+  Position? _posicao;
   bool _carregando = false;
   String? _erro;
 
@@ -41,6 +44,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _confirmarSenhaController.dispose();
     _regiaoController.dispose();
     super.dispose();
+  }
+
+  // Ao ligar a opção, pede a permissão e pega a localização na hora. Sem GPS ou sem
+  // permissão, avisa e deixa a opção desligada (antes a falha passava em silêncio).
+  Future<void> _alterarLocalizacao(bool ligar) async {
+    if (!ligar) {
+      setState(() {
+        _localizacaoAutomatica = false;
+        _posicao = null;
+      });
+      return;
+    }
+    setState(() => _obtendoLocalizacao = true);
+    try {
+      final posicao = await obterLocalizacaoAtual();
+      if (!mounted) return;
+      setState(() {
+        _localizacaoAutomatica = true;
+        _posicao = posicao;
+      });
+    } on LocalizacaoException catch (e) {
+      if (!mounted) return;
+      setState(() => _localizacaoAutomatica = false);
+      showAppSnackBar(context, e.message, type: AppSnackType.error);
+    } finally {
+      if (mounted) setState(() => _obtendoLocalizacao = false);
+    }
   }
 
   Future<void> _cadastrar() async {
@@ -58,22 +88,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     final authProvider = context.read<AuthProvider>();
 
-    double? lat;
-    double? lng;
-    if (_localizacaoAutomatica) {
-      try {
-        final posicao = await Geolocator.getCurrentPosition(
-          locationSettings: const LocationSettings(
-            accuracy: LocationAccuracy.medium,
-            timeLimit: Duration(seconds: 8),
-          ),
-        );
-        lat = posicao.latitude;
-        lng = posicao.longitude;
-      } catch (_) {
-        // Localização é opcional no cadastro; a região textual já é suficiente.
-      }
-    }
+    // A posição já foi obtida quando a opção foi ligada.
+    final lat = _localizacaoAutomatica ? _posicao?.latitude : null;
+    final lng = _localizacaoAutomatica ? _posicao?.longitude : null;
 
     try {
       await authProvider.register(
@@ -165,14 +182,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 controller: _regiaoController,
                 validator: (v) => (v == null || v.isEmpty) ? 'Preencha todos os campos obrigatórios.' : null,
               ),
+              const Padding(
+                padding: EdgeInsets.only(top: 6, left: 4),
+                child: Text('Só bairro e cidade. Ex.: Setor Central, Rio Verde',
+                    style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+              ),
               const SizedBox(height: 8),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 value: _localizacaoAutomatica,
-                onChanged: (v) => setState(() => _localizacaoAutomatica = v),
+                onChanged: _obtendoLocalizacao ? null : _alterarLocalizacao,
                 title: const Text('Usar minha localização'),
-                subtitle: const Text('Para receber alertas de animais perdidos perto de você',
-                    style: TextStyle(fontSize: 12)),
+                subtitle: Text(
+                    _obtendoLocalizacao
+                        ? 'Obtendo sua localização...'
+                        : 'Para receber alertas de animais perdidos perto de você',
+                    style: const TextStyle(fontSize: 12)),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
