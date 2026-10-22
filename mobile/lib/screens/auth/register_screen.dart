@@ -6,6 +6,7 @@ import '../../data/api_client.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/phone_formatter.dart';
+import '../../utils/politica_privacidade.dart';
 import '../../widgets/app_snackbar.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/petfind_header.dart';
@@ -179,6 +180,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: _carregando
                     ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                     : const Text('Continuar'),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => abrirPoliticaPrivacidade(context),
+                child: const Text('Política de privacidade'),
               ),
             ],
           ),

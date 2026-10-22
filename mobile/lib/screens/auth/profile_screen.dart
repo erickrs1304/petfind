@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_snackbar.dart';
 import '../../utils/phone_formatter.dart';
+import '../../utils/politica_privacidade.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/petfind_header.dart';
 import '../casos/my_cases_screen.dart';
@@ -174,6 +175,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             if (!_editando) ...[
               const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: () => abrirPoliticaPrivacidade(context),
+                icon: const Icon(Icons.privacy_tip_outlined),
+                label: const Text('Política de privacidade'),
+              ),
               TextButton.icon(
                 onPressed: _carregando ? null : _excluirConta,
                 style: TextButton.styleFrom(foregroundColor: AppTheme.dangerStrong),

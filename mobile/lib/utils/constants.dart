@@ -19,6 +19,9 @@ String get kApiBaseUrl {
 
 const double kDefaultNotificationRadiusKm = 5;
 
+// Política de privacidade publicada pela API (exigência da Google Play e da LGPD).
+const String kPoliticaPrivacidadeUrl = 'https://petfind-beryl.vercel.app/privacidade';
+
 // Centro do mapa de marcação do ponto do desaparecimento quando não há ponto marcado nem
 // localização no perfil (Rio Verde - GO).
 const double kCentroPadraoLat = -17.7929;
