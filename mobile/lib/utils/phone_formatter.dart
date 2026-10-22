@@ -14,6 +14,14 @@ class PhoneInputFormatter extends TextInputFormatter {
   }
 }
 
+// Telefone com DDD: 10 ou 11 dígitos (RF-001). A máscara limita o máximo; aqui vale o mínimo.
+String? validarTelefone(String? valor) {
+  final digitos = (valor ?? '').replaceAll(RegExp(r'\D'), '');
+  if (digitos.isEmpty) return 'Preencha todos os campos obrigatórios.';
+  if (digitos.length < 10) return 'Informe o telefone com DDD (10 ou 11 dígitos).';
+  return null;
+}
+
 String formatarTelefone(String digitos) {
   if (digitos.isEmpty) return '';
   final b = StringBuffer('(');

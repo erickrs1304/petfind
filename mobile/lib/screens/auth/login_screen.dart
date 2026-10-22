@@ -66,6 +66,20 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
+  // Com a senha redefinida, o servidor libera o login; o contador do bloqueio sai junto.
+  Future<void> _abrirRecuperacao() async {
+    final redefiniu = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
+    );
+    if (redefiniu == true && mounted) {
+      _relogio?.cancel();
+      setState(() {
+        _bloqueadoAte = null;
+        _erro = null;
+      });
+    }
+  }
+
   Future<void> _entrar() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() {
@@ -136,9 +150,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 4),
               TextButton(
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
-                ),
+                onPressed: _abrirRecuperacao,
                 child: const Text('Esqueci minha senha'),
               ),
               const SizedBox(height: 12),

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../utils/constants.dart';
@@ -57,15 +58,15 @@ String extractErrorMessage(Object error, {String fallback = 'Não foi possível 
       return data['error'] as String;
     }
     // Sem resposta do servidor não há o que validar: dizer só "não foi possível"
-    // faz parecer que os dados foram recusados, quando na verdade a API está
-    // inacessível (back-end parado, IP errado, sem rede).
+    // faz parecer que os dados foram recusados, quando na verdade falta conexão.
+    // A mensagem fica em linguagem simples (RNF-011); o endereço da API vai só para o log.
     switch (error.type) {
       case DioExceptionType.connectionError:
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
-        return 'Não foi possível falar com o servidor ($kApiBaseUrl). '
-            'Verifique se o back-end está rodando e se você está na mesma rede.';
+        debugPrint('Sem resposta de $kApiBaseUrl: ${error.message}');
+        return 'Sem conexão com a internet. Verifique sua conexão e tente novamente.';
       default:
         break;
     }

@@ -9,7 +9,7 @@
     <!-- RF-006: foto via câmera ao registrar avistamento. -->
     <uses-permission android:name="android.permission.CAMERA"/>
     <application
-        android:label="petfind"
+        android:label="PetFind"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

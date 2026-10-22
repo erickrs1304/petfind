@@ -92,7 +92,7 @@ class NotificationsScreen extends StatelessWidget {
               decoration: BoxDecoration(color: AppTheme.surfaceCard, borderRadius: BorderRadius.circular(14)),
               child: ListTile(
                 title: const Text('Raio de alcance'),
-                subtitle: Text('Atual: ${auth.usuario?.raioNotificacaoKm.toStringAsFixed(0) ?? 5} km', style: const TextStyle(fontSize: 12)),
+                subtitle: Text('Atual: ${formatarKm(auth.usuario?.raioNotificacaoKm ?? 5.0)} km', style: const TextStyle(fontSize: 12)),
                 trailing: TextButton(
                   onPressed: () => _editarRaio(context, auth),
                   child: const Text('Editar'),
@@ -157,14 +157,14 @@ class NotificationsScreen extends StatelessWidget {
   }
 
   Future<void> _editarRaio(BuildContext context, AuthProvider auth) async {
-    final controller = TextEditingController(text: auth.usuario?.raioNotificacaoKm.toStringAsFixed(0) ?? '5');
+    final controller = TextEditingController(text: formatarKm(auth.usuario?.raioNotificacaoKm ?? 5.0));
     final novoRaio = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Raio de alcance'),
         content: TextField(
           controller: controller,
-          keyboardType: TextInputType.number,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: const InputDecoration(suffixText: 'km'),
         ),
         actions: [
@@ -174,8 +174,16 @@ class NotificationsScreen extends StatelessWidget {
       ),
     );
     if (novoRaio == null) return;
-    final valor = double.tryParse(novoRaio);
-    if (valor == null || valor <= 0) return;
-    await auth.atualizarPerfil({'raioNotificacaoKm': valor});
+    // Aceita vírgula ("2,5"), como se digita no Brasil; valor inválido avisa em vez de sumir.
+    final valor = double.tryParse(novoRaio.trim().replaceAll(',', '.'));
+    if (valor == null || valor <= 0) {
+      if (context.mounted) showAppSnackBar(context, 'Informe um raio maior que zero, em km.', type: AppSnackType.error);
+      return;
+    }
+    try {
+      await auth.atualizarPerfil({'raioNotificacaoKm': valor});
+    } catch (e) {
+      if (context.mounted) showAppSnackBar(context, extractErrorMessage(e), type: AppSnackType.error);
+    }
   }
 }

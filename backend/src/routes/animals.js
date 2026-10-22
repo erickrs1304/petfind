@@ -1,6 +1,6 @@
 const express = require('express');
 const { Op } = require('sequelize');
-const { Animal, Avistamento, Usuario } = require('../models');
+const { sequelize, Animal, Avistamento, Usuario } = require('../models');
 const authMiddleware = require('../middleware/auth');
 const upload = require('../middleware/upload');
 const { urlDaFoto, removerFoto } = upload;
@@ -26,7 +26,9 @@ router.get('/', async (req, res) => {
   if (status !== 'TODOS') where.status = status || 'ATIVO';
   if (meus === 'true') where.usuarioId = req.userId;
   if (especie) where.especie = especie;
-  if (nome) where.nome = { [Op.like]: `%${nome}%` };
+  // No PostgreSQL o LIKE diferencia maiúsculas ("thor" não achava "Thor"); o ILIKE não existe
+  // no SQLite usado nos testes, onde o LIKE já ignora maiúsculas.
+  if (nome) where.nome = { [sequelize.getDialect() === 'postgres' ? Op.iLike : Op.like]: `%${nome}%` };
 
   const animais = await Animal.findAll({ where, include: [{ model: Usuario, as: 'tutor', attributes: ['id', 'nome'] }] });
 

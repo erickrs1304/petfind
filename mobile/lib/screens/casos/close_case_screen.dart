@@ -65,7 +65,6 @@ class _CloseCaseScreenState extends State<CloseCaseScreen> {
   @override
   Widget build(BuildContext context) {
     final animal = widget.animal;
-    final dias = DateTime.now().difference(animal.dataDesaparecimento).inDays;
 
     return PetFindScaffold(
       titulo: 'Encerrar Caso',
@@ -113,7 +112,10 @@ class _CloseCaseScreenState extends State<CloseCaseScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(animal.nome, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                        Text('Desaparecido há $dias dias • ${widget.totalAvistamentos} avistamentos', style: Theme.of(context).textTheme.bodySmall),
+                        Text(
+                          '${formatarTempoDesaparecido(animal.dataDesaparecimento)} • ${formatarAvistamentos(widget.totalAvistamentos)}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
                         const SizedBox(height: 4),
                         StatusChip(status: animal.status),
                       ],
@@ -131,7 +133,11 @@ class _CloseCaseScreenState extends State<CloseCaseScreen> {
                 children: [
                   _linhaResumo(Icons.calendar_today_outlined, 'Desapareceu em: ${formatarData(animal.dataDesaparecimento)}'),
                   _linhaResumo(Icons.location_on_outlined, 'Última localização: ${animal.ultimaLocalizacaoTexto}'),
-                  _linhaResumo(Icons.groups_outlined, 'Colaboradores: ${widget.totalAvistamentos} avistamentos registrados'),
+                  _linhaResumo(
+                    Icons.groups_outlined,
+                    'Colaboradores: ${formatarAvistamentos(widget.totalAvistamentos)} '
+                    '${widget.totalAvistamentos == 1 ? 'registrado' : 'registrados'}',
+                  ),
                 ],
               ),
             ),

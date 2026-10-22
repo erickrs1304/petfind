@@ -33,7 +33,9 @@ class _RegisterSightingScreenState extends State<RegisterSightingScreen> {
   PickedPhoto? _foto;
   bool _obtendoLocalizacao = true;
   bool _enviando = false;
-  String? _erro;
+  // Só falhas do GPS: aparecem no cartão da localização, com o botão de tentar de novo.
+  // Erros do envio (ex.: caso encerrado no meio do registro) vão para o aviso na base da tela.
+  String? _erroLocalizacao;
 
   @override
   void initState() {
@@ -44,13 +46,13 @@ class _RegisterSightingScreenState extends State<RegisterSightingScreen> {
   Future<void> _obterLocalizacao() async {
     setState(() {
       _obtendoLocalizacao = true;
-      _erro = null;
+      _erroLocalizacao = null;
     });
     try {
       final posicao = await obterLocalizacaoAtual();
       setState(() => _posicao = posicao);
     } on LocalizacaoException catch (e) {
-      setState(() => _erro = e.message);
+      setState(() => _erroLocalizacao = e.message);
     } finally {
       if (mounted) setState(() => _obtendoLocalizacao = false);
     }
@@ -87,13 +89,10 @@ class _RegisterSightingScreenState extends State<RegisterSightingScreen> {
 
   Future<void> _registrar() async {
     if (_posicao == null) {
-      setState(() => _erro = 'Não foi possível obter sua localização. Ative o GPS e tente novamente.');
+      setState(() => _erroLocalizacao = 'Não foi possível obter sua localização. Ative o GPS e tente novamente.');
       return;
     }
-    setState(() {
-      _enviando = true;
-      _erro = null;
-    });
+    setState(() => _enviando = true);
     try {
       await _repository.registrarAvistamento(
         animalId: widget.animal.id,
@@ -106,7 +105,12 @@ class _RegisterSightingScreenState extends State<RegisterSightingScreen> {
       showAppSnackBar(context, 'Avistamento registrado! O tutor será notificado.', type: AppSnackType.success);
       Navigator.of(context).pop(true);
     } catch (e) {
-      setState(() => _erro = extractErrorMessage(e, fallback: 'Não foi possível registrar o avistamento.'));
+      if (!mounted) return;
+      showAppSnackBar(
+        context,
+        extractErrorMessage(e, fallback: 'Não foi possível registrar o avistamento.'),
+        type: AppSnackType.error,
+      );
     } finally {
       if (mounted) setState(() => _enviando = false);
     }
@@ -158,7 +162,7 @@ class _RegisterSightingScreenState extends State<RegisterSightingScreen> {
               obtendo: _obtendoLocalizacao,
               lat: _posicao?.latitude,
               lng: _posicao?.longitude,
-              erro: _erro,
+              erro: _erroLocalizacao,
               onRetry: _obterLocalizacao,
             ),
             const SizedBox(height: 20),

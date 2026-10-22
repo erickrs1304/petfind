@@ -28,6 +28,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return formatarTelefone(digitos.length > 11 ? digitos.substring(0, 11) : digitos);
   }
 
+  final _formKey = GlobalKey<FormState>();
   bool _editando = false;
   bool _carregando = false;
   String? _erro;
@@ -47,7 +48,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _regiaoController = TextEditingController(text: usuario.regiao);
   }
 
+  // O "X" descarta o que foi digitado: ao editar de novo, os campos voltam aos dados salvos.
+  void _cancelarEdicao() {
+    final usuario = context.read<AuthProvider>().usuario!;
+    _nomeController.text = usuario.nome;
+    _telefoneController.text = _mascarar(usuario.telefone);
+    _regiaoController.text = usuario.regiao;
+    _novaSenhaController.clear();
+    setState(() {
+      _editando = false;
+      _erro = null;
+    });
+  }
+
   Future<void> _salvar() async {
+    if (!_formKey.currentState!.validate()) return;
     setState(() {
       _carregando = true;
       _erro = null;
@@ -60,6 +75,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (_novaSenhaController.text.isNotEmpty) 'senha': _novaSenhaController.text,
       });
       if (!mounted) return;
+      _novaSenhaController.clear();
       setState(() => _editando = false);
       showAppSnackBar(context, 'Perfil atualizado com sucesso.', type: AppSnackType.success);
     } catch (e) {
@@ -128,66 +144,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
       acoes: [
         IconButton(
           icon: Icon(_editando ? Icons.close : Icons.edit, color: Colors.white),
-          onPressed: () => setState(() => _editando = !_editando),
+          onPressed: _editando ? _cancelarEdicao : () => setState(() => _editando = true),
         ),
       ],
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SizedBox(height: 8),
-            const CircleAvatar(radius: 40, backgroundColor: Color(0x1FFF7A45), child: Icon(Icons.person, size: 40, color: AppTheme.primaryStrong)),
-            const SizedBox(height: 24),
-            if (_erro != null) ...[
-              Text(_erro!, style: const TextStyle(color: AppTheme.dangerStrong)),
-              const SizedBox(height: 12),
-            ],
-            if (_editando) ..._camposEdicao() else ..._camposLeitura(usuario),
-            if (!_editando) ...[
-              const SizedBox(height: 16),
-              const SectionLabel('Meus casos'),
-              Container(
-                decoration: BoxDecoration(color: AppTheme.surfaceCard, borderRadius: BorderRadius.circular(14)),
-                child: ListTile(
-                  leading: const Icon(Icons.folder_shared_outlined, color: AppTheme.primaryStrong),
-                  title: const Text('Casos que cadastrei'),
-                  subtitle: const Text('Editar casos ativos e ver os encerrados', style: TextStyle(fontSize: 12)),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const MyCasesScreen()),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 8),
+              const CircleAvatar(radius: 40, backgroundColor: Color(0x1FFF7A45), child: Icon(Icons.person, size: 40, color: AppTheme.primaryStrong)),
+              const SizedBox(height: 24),
+              if (_erro != null) ...[
+                Text(_erro!, style: const TextStyle(color: AppTheme.dangerStrong)),
+                const SizedBox(height: 12),
+              ],
+              if (_editando) ..._camposEdicao() else ..._camposLeitura(usuario),
+              if (!_editando) ...[
+                const SizedBox(height: 16),
+                const SectionLabel('Meus casos'),
+                Container(
+                  decoration: BoxDecoration(color: AppTheme.surfaceCard, borderRadius: BorderRadius.circular(14)),
+                  child: ListTile(
+                    leading: const Icon(Icons.folder_shared_outlined, color: AppTheme.primaryStrong),
+                    title: const Text('Casos que cadastrei'),
+                    subtitle: const Text('Editar casos ativos e ver os encerrados', style: TextStyle(fontSize: 12)),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const MyCasesScreen()),
+                    ),
                   ),
                 ),
+              ],
+              const SizedBox(height: 24),
+              if (_editando)
+                ElevatedButton(
+                  onPressed: _carregando ? null : _salvar,
+                  child: _carregando
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : const Text('Salvar'),
+                ),
+              const SizedBox(height: 12),
+              OutlinedButton(
+                onPressed: () => context.read<AuthProvider>().logout(),
+                child: const Text('Sair'),
               ),
+              if (!_editando) ...[
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: () => abrirPoliticaPrivacidade(context),
+                  icon: const Icon(Icons.privacy_tip_outlined),
+                  label: const Text('Política de privacidade'),
+                ),
+                TextButton.icon(
+                  onPressed: _carregando ? null : _excluirConta,
+                  style: TextButton.styleFrom(foregroundColor: AppTheme.dangerStrong),
+                  icon: const Icon(Icons.delete_outline),
+                  label: const Text('Excluir conta'),
+                ),
+              ],
             ],
-            const SizedBox(height: 24),
-            if (_editando)
-              ElevatedButton(
-                onPressed: _carregando ? null : _salvar,
-                child: _carregando
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text('Salvar'),
-              ),
-            const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: () => context.read<AuthProvider>().logout(),
-              child: const Text('Sair'),
-            ),
-            if (!_editando) ...[
-              const SizedBox(height: 8),
-              TextButton.icon(
-                onPressed: () => abrirPoliticaPrivacidade(context),
-                icon: const Icon(Icons.privacy_tip_outlined),
-                label: const Text('Política de privacidade'),
-              ),
-              TextButton.icon(
-                onPressed: _carregando ? null : _excluirConta,
-                style: TextButton.styleFrom(foregroundColor: AppTheme.dangerStrong),
-                icon: const Icon(Icons.delete_outline),
-                label: const Text('Excluir conta'),
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );
@@ -212,19 +231,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // Mesmas mensagens do cadastro; sem elas a API só respondia "Dados inválidos.".
+  static String? _obrigatorio(String? v) =>
+      (v == null || v.trim().isEmpty) ? 'Preencha todos os campos obrigatórios.' : null;
+
   List<Widget> _camposEdicao() => [
         const SectionLabel('Dados pessoais'),
-        AppTextField(label: 'Nome', controller: _nomeController),
+        AppTextField(label: 'Nome', controller: _nomeController, validator: _obrigatorio),
         const SizedBox(height: 12),
         AppTextField(
           label: 'Telefone',
           controller: _telefoneController,
           keyboardType: TextInputType.phone,
           inputFormatters: [PhoneInputFormatter()],
+          validator: validarTelefone,
         ),
         const SizedBox(height: 12),
-        AppTextField(label: 'Região (bairro/cidade)', controller: _regiaoController),
+        AppTextField(label: 'Região (bairro/cidade)', controller: _regiaoController, validator: _obrigatorio),
         const SizedBox(height: 12),
-        AppTextField(label: 'Nova senha (opcional)', controller: _novaSenhaController, obscureText: true),
+        AppTextField(
+          label: 'Nova senha (opcional)',
+          controller: _novaSenhaController,
+          obscureText: true,
+          validator: (v) => (v != null && v.isNotEmpty && v.length < 6) ? 'A senha deve ter no mínimo 6 caracteres.' : null,
+        ),
       ];
 }

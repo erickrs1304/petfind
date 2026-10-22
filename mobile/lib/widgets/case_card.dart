@@ -11,16 +11,8 @@ class CaseCard extends StatelessWidget {
   final Animal animal;
   final VoidCallback onTap;
 
-  IconData get _iconeEspecie {
-    switch (animal.especie) {
-      case 'Cachorro':
-        return Icons.pets;
-      case 'Gato':
-        return Icons.cruelty_free;
-      default:
-        return Icons.emoji_nature;
-    }
-  }
+  // O Material Icons não tem gato (o ícone usado antes era um coelho): cão e gato usam a pata.
+  IconData get _iconeEspecie => animal.especie == 'Outro' ? Icons.emoji_nature : Icons.pets;
 
   String get _subtitulo {
     final partes = [animal.especie, if (animal.porte != null && animal.porte!.isNotEmpty) animal.porte!, if (animal.raca != null && animal.raca!.isNotEmpty) animal.raca!];
@@ -74,7 +66,7 @@ class CaseCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     if (animal.distanciaKm != null)
                       Text(
-                        '${animal.distanciaKm!.toStringAsFixed(1)} km de você',
+                        '${animal.distanciaKm!.toStringAsFixed(1).replaceAll('.', ',')} km de você',
                         style: const TextStyle(color: AppTheme.primaryStrong, fontWeight: FontWeight.w600, fontSize: 13),
                       ),
                     Text(formatarTempoDesaparecido(animal.dataDesaparecimento), style: Theme.of(context).textTheme.bodySmall),

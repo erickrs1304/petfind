@@ -35,6 +35,11 @@ class LocationCaptureCard extends StatelessWidget {
   /// Ação opcional abaixo da coordenada (ex.: "Atualizar com meu GPS atual").
   final Widget? acaoExtra;
 
+  // O hemisfério já indica o sinal: -17.79 vira "17.7929° S" (antes saía "-17.7929° S").
+  static String _coordenada(double lat, double lng) =>
+      '${lat.abs().toStringAsFixed(4)}° ${lat < 0 ? 'S' : 'N'}, '
+      '${lng.abs().toStringAsFixed(4)}° ${lng < 0 ? 'O' : 'L'}';
+
   @override
   Widget build(BuildContext context) {
     final agora = TimeOfDay.now();
@@ -61,10 +66,7 @@ class LocationCaptureCard extends StatelessWidget {
               Row(children: [
                 const Icon(Icons.public, color: Colors.blueGrey, size: 18),
                 const SizedBox(width: 8),
-                Text(
-                  '${lat!.toStringAsFixed(4)}° S, ${lng!.toStringAsFixed(4)}° O',
-                  style: const TextStyle(fontSize: 13),
-                ),
+                Text(_coordenada(lat!, lng!), style: const TextStyle(fontSize: 13)),
               ]),
             if (mostrarHorario) ...[
               const SizedBox(height: 6),

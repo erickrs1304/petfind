@@ -25,6 +25,13 @@ class PushService {
   void Function(String titulo, String corpo, int? animalId)? _aoReceberComAppAberto;
   int? _casoPendente;
 
+  // O Android mostra um pedido de permissão por vez. Se a localização fosse pedida enquanto o
+  // pedido de notificações está na tela, o segundo se perdia e a lista de casos ficava carregando.
+  Future<void> _pedidoDeNotificacoes = Future.value();
+
+  /// Espera terminar o pedido de permissão de notificações feito logo após o login.
+  Future<void> aguardarPedidoDeNotificacoes() => _pedidoDeNotificacoes;
+
   /// Define o que fazer ao tocar numa notificação e ao receber uma com o app aberto.
   void configurar({
     required void Function(int animalId) abrirCaso,
@@ -81,8 +88,13 @@ class PushService {
   /// Depois do login: pede permissão, pega o token do celular e registra no servidor.
   Future<void> registrar() async {
     if (!_disponivel) return;
+    final pedido = FirebaseMessaging.instance.requestPermission().then<void>(
+          (_) {},
+          onError: (Object e) => debugPrint('Pedido de permissão de notificações falhou: $e'),
+        );
+    _pedidoDeNotificacoes = pedido;
     try {
-      await FirebaseMessaging.instance.requestPermission();
+      await pedido;
       final token = await FirebaseMessaging.instance.getToken();
       if (token == null) return;
       await _enviarToken(token);

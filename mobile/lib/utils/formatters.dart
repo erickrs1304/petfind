@@ -36,8 +36,17 @@ String formatarTempoDesaparecido(DateTime dataDesaparecimento) {
 String formatarTempoDecorrido(DateTime data) {
   final diferenca = DateTime.now().difference(data);
   if (diferenca.inMinutes < 1) return 'Agora mesmo';
+  if (diferenca.inMinutes == 1) return 'Há 1 minuto';
   if (diferenca.inMinutes < 60) return 'Há ${diferenca.inMinutes} minutos';
+  if (diferenca.inHours == 1) return 'Há 1 hora';
   if (diferenca.inHours < 24) return 'Há ${diferenca.inHours} horas';
   if (diferenca.inDays == 1) return 'Há 1 dia';
   return 'Há ${diferenca.inDays} dias';
 }
+
+/// "1 avistamento" ou "N avistamentos".
+String formatarAvistamentos(int quantidade) => quantidade == 1 ? '1 avistamento' : '$quantidade avistamentos';
+
+/// Distância em km com vírgula, como se escreve no Brasil: "5", "2,5".
+String formatarKm(double km) =>
+    km == km.roundToDouble() ? km.toStringAsFixed(0) : km.toStringAsFixed(1).replaceAll('.', ',');

@@ -293,7 +293,7 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
               const SizedBox(height: 8),
               Row(children: [
                 _chipEspecie('Cachorro', Icons.pets),
-                _chipEspecie('Gato', Icons.cruelty_free),
+                _chipEspecie('Gato', Icons.pets),
                 _chipEspecie('Outro', Icons.emoji_nature),
               ]),
               const SizedBox(height: 12),

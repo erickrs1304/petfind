@@ -52,9 +52,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
   }
 
+  // Confere antes de enviar, com as mensagens do cadastro; a API só responderia "Dados inválidos.".
+  String? _validarRedefinicao() {
+    if (!RegExp(r'^\d{6}$').hasMatch(_codigoController.text.trim())) return 'Código inválido.';
+    if (_novaSenhaController.text.length < 6) return 'A senha deve ter no mínimo 6 caracteres.';
+    if (_novaSenhaController.text != _confirmarNovaSenhaController.text) return 'As senhas não coincidem.';
+    return null;
+  }
+
   Future<void> _redefinirSenha() async {
-    if (_novaSenhaController.text != _confirmarNovaSenhaController.text) {
-      setState(() => _erro = 'As senhas não coincidem.');
+    final mensagem = _validarRedefinicao();
+    if (mensagem != null) {
+      setState(() => _erro = mensagem);
       return;
     }
     setState(() {
@@ -70,7 +79,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           );
       if (!mounted) return;
       showAppSnackBar(context, 'Senha redefinida com sucesso.', type: AppSnackType.success);
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(true);
     } catch (e) {
       setState(() => _erro = extractErrorMessage(e, fallback: 'Código inválido.'));
     } finally {

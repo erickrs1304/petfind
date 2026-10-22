@@ -177,6 +177,9 @@ router.post('/reset-password', async (req, res) => {
   usuario.senhaHash = await bcrypt.hash(novaSenha, 10);
   usuario.resetCode = null;
   usuario.resetCodeExpiraEm = null;
+  // RF-002 A2: a mensagem de bloqueio sugere recuperar a senha; com a senha nova, o login é liberado.
+  usuario.loginTentativasFalhas = 0;
+  usuario.loginBloqueadoAte = null;
   await usuario.save();
 
   return res.json({ message: 'Senha redefinida com sucesso.' });

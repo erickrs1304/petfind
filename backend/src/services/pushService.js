@@ -35,15 +35,13 @@ const ERROS_TOKEN_INVALIDO = ['messaging/registration-token-not-registered', 'me
 async function enviarPush(notificacoes) {
   if (!pushConfigurado() || !notificacoes || !notificacoes.length) return;
   try {
-    const { Usuario, Dispositivo } = require('../models');
+    const { Dispositivo } = require('../models');
     const ids = [...new Set(notificacoes.map((n) => n.usuarioId))];
 
-    // RF-008 A1: quem desativou as notificações não recebe push (o contador no app permanece).
-    const ativos = await Usuario.findAll({ where: { id: ids, notificacoesAtivas: true }, attributes: ['id'] });
-    const idsAtivos = ativos.map((u) => u.id);
-    if (!idsAtivos.length) return;
-
-    const dispositivos = await Dispositivo.findAll({ where: { usuarioId: idsAtivos } });
+    // RF-008 A1: a escolha "Alertas por proximidade" já foi aplicada ao criar as notificações
+    // (os alertas da região só vão para quem os ligou). Os avisos dos próprios casos, de
+    // avistamento confirmado e de caso encerrado chegam sempre, como push também.
+    const dispositivos = await Dispositivo.findAll({ where: { usuarioId: ids } });
     if (!dispositivos.length) return;
 
     const mensagens = [];

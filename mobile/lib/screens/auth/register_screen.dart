@@ -155,7 +155,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 keyboardType: TextInputType.phone,
                 inputFormatters: [PhoneInputFormatter()],
                 hintText: '(99) 99999-9999',
-                validator: (v) => (v == null || v.isEmpty) ? 'Preencha todos os campos obrigatórios.' : null,
+                validator: validarTelefone,
               ),
               const SizedBox(height: 12),
               AppTextField(

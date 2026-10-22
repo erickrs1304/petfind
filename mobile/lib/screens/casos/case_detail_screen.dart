@@ -122,7 +122,7 @@ class _CaseDetailScreenState extends State<CaseDetailScreen> {
 
     return PetFindScaffold(
       titulo: animal?.nome ?? 'Detalhes do caso',
-      subtitulo: animal != null ? '${animal.especie} • $_totalAvistamentos avistamentos' : null,
+      subtitulo: animal != null ? '${animal.especie} • ${formatarAvistamentos(_totalAvistamentos)}' : null,
       body: _carregando
           ? const LoadingView()
           : _erro != null

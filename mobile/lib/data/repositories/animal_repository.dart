@@ -68,8 +68,8 @@ class AnimalRepository {
     return Animal.fromJson(response.data as Map<String, dynamic>);
   }
 
-  /// RF-004 - edição do caso. Só envia os campos preenchidos; a foto é opcional
-  /// (se não vier uma nova, o back-end mantém a atual).
+  /// RF-004 - edição do caso. A foto é opcional (se não vier uma nova, o back-end mantém
+  /// a atual). Raça e porte vão sempre, mesmo vazios, para que apagá-los limpe o valor salvo.
   Future<Animal> editar({
     required int id,
     required String nome,
@@ -86,8 +86,8 @@ class AnimalRepository {
     final formData = FormData.fromMap({
       'nome': nome,
       'especie': especie,
-      if (raca != null && raca.isNotEmpty) 'raca': raca,
-      if (porte != null && porte.isNotEmpty) 'porte': porte,
+      'raca': raca ?? '',
+      'porte': porte ?? '',
       'caracteristicas': caracteristicas,
       'dataDesaparecimento': dataDesaparecimento.toIso8601String().substring(0, 10),
       'ultimaLocalizacaoTexto': ultimaLocalizacaoTexto,

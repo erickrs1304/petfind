@@ -36,7 +36,8 @@ class Avistamento {
         usuarioId: json['usuarioId'] as int,
         lat: (json['lat'] as num).toDouble(),
         lng: (json['lng'] as num).toDouble(),
-        dataHora: DateTime.parse(json['dataHora'] as String),
+        // A API devolve a hora em UTC; sem toLocal() a tela mostrava 3 horas a mais.
+        dataHora: DateTime.parse(json['dataHora'] as String).toLocal(),
         comentario: json['comentario'] as String?,
         comentarioTutor: json['comentarioTutor'] as String?,
         fotoUrl: json['fotoUrl'] as String?,

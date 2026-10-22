@@ -83,7 +83,9 @@ class _MapScreenState extends State<MapScreen> {
     return porLocal.values.map(_GrupoAvistamentos.new).toList();
   }
 
-  Widget _pinNumerado(int numero, Color cor, String rotulo, {int quantidade = 1}) {
+  // [conteudo] é o número do avistamento ou, no ponto do desaparecimento, um ícone: assim os
+  // avistamentos são numerados a partir de 1, como na tela de confirmação.
+  Widget _pin(Widget conteudo, Color cor, String rotulo, {int quantidade = 1}) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -95,7 +97,7 @@ class _MapScreenState extends State<MapScreen> {
               height: 32,
               decoration: BoxDecoration(color: cor, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
               alignment: Alignment.center,
-              child: Text('$numero', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+              child: conteudo,
             ),
             // Contador do agrupamento (A2).
             if (quantidade > 1)
@@ -134,7 +136,7 @@ class _MapScreenState extends State<MapScreen> {
 
     return PetFindScaffold(
       titulo: 'Mapa do Caso',
-      subtitulo: '${widget.animal.nome} • ${_confirmados.length} avistamentos',
+      subtitulo: '${widget.animal.nome} • ${formatarAvistamentos(_confirmados.length)}',
       scrollable: false,
       body: _carregando
           ? const LoadingView()
@@ -143,7 +145,8 @@ class _MapScreenState extends State<MapScreen> {
               : Stack(
                   children: [
                     FlutterMap(
-                      options: MapOptions(initialCenter: centro, initialZoom: 14),
+                      // Zoom 13,5: as bordas do raio de 5 km aparecem sem encavalar os marcadores.
+                      options: MapOptions(initialCenter: centro, initialZoom: 13.5),
                       children: [
                         TileLayer(
                           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -160,8 +163,8 @@ class _MapScreenState extends State<MapScreen> {
                             radius: kDefaultNotificationRadiusKm * 1000,
                             useRadiusInMeter: true,
                             color: AppTheme.primaryStrong.withValues(alpha: 0.08),
-                            borderColor: AppTheme.primaryStrong.withValues(alpha: 0.4),
-                            borderStrokeWidth: 1,
+                            borderColor: AppTheme.primaryStrong.withValues(alpha: 0.7),
+                            borderStrokeWidth: 2.5,
                           ),
                         ]),
                         if (pontosTrajetoria.length > 1)
@@ -174,7 +177,7 @@ class _MapScreenState extends State<MapScreen> {
                             width: 70,
                             height: 56,
                             alignment: Alignment.topCenter,
-                            child: _pinNumerado(1, AppTheme.dangerStrong, 'Última loc.'),
+                            child: _pin(const Icon(Icons.pets, color: Colors.white, size: 16), AppTheme.dangerStrong, 'Última loc.'),
                           ),
                           for (var i = 0; i < _grupos.length; i++)
                             Marker(
@@ -184,8 +187,8 @@ class _MapScreenState extends State<MapScreen> {
                               alignment: Alignment.topCenter,
                               child: GestureDetector(
                                 onTap: () => _mostrarGrupo(_grupos[i]),
-                                child: _pinNumerado(
-                                  i + 2,
+                                child: _pin(
+                                  Text('${i + 1}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
                                   AppTheme.primaryStrong,
                                   _grupos[i].quantidade > 1 ? '${_grupos[i].quantidade} avist.' : 'Avist. ${i + 1}',
                                   quantidade: _grupos[i].quantidade,

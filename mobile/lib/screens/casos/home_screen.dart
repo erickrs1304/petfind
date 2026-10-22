@@ -147,20 +147,25 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            // RF-005 A2 - sem GPS, a busca cai para a região cadastrada no perfil.
-            if (provider.usandoRegiaoDoPerfil)
-              const Padding(
-                padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+            // RF-005 A2 - sem GPS, a busca cai para a localização salva no perfil (alertas
+            // ligados); sem nenhuma das duas, a lista mostra todos os casos, sem distância.
+            if (provider.usandoRegiaoDoPerfil || provider.semLocalizacao)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                 child: InfoBanner(
                   icon: Icons.location_off_outlined,
-                  message: 'Usando região do seu perfil. Ative o GPS para resultados mais precisos.',
+                  message: provider.semLocalizacao
+                      ? 'Ative a localização para ver os casos mais próximos de você.'
+                      : 'Usando região do seu perfil. Ative o GPS para resultados mais precisos.',
                 ),
               ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: SectionLabel('Próximos a você • ${provider.raioKm.toStringAsFixed(0)} km'),
+                child: SectionLabel(provider.semLocalizacao
+                    ? 'Casos ativos'
+                    : 'Próximos a você • ${provider.raioKm.toStringAsFixed(0)} km'),
               ),
             ),
             Expanded(child: _conteudo(provider)),

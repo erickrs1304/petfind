@@ -24,6 +24,6 @@ class Notificacao {
         mensagem: json['mensagem'] as String,
         referenciaAnimalId: json['referenciaAnimalId'] as int?,
         lida: json['lida'] as bool? ?? false,
-        createdAt: DateTime.parse(json['createdAt'] as String),
+        createdAt: DateTime.parse(json['createdAt'] as String).toLocal(),
       );
 }

@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import '../data/models/animal.dart';
 import '../data/repositories/animal_repository.dart';
 import '../utils/constants.dart';
+import '../utils/location_helper.dart';
 
 /// De onde veio a coordenada usada para ordenar/filtrar a listagem (RF-005 A2).
 enum OrigemLocalizacao {
@@ -32,8 +33,13 @@ class AnimalProvider extends ChangeNotifier {
 
   double? _lat;
   double? _lng;
+  bool _carregouAlgumaVez = false;
 
   bool get usandoRegiaoDoPerfil => origemLocalizacao == OrigemLocalizacao.perfil;
+
+  /// Sem GPS e sem localização no perfil (alertas desligados): a lista mostra todos os
+  /// casos, sem distância (RF-005 A2). Só vale depois da primeira carga.
+  bool get semLocalizacao => _carregouAlgumaVez && origemLocalizacao == OrigemLocalizacao.indisponivel;
 
   /// Carrega os casos ativos ordenados por proximidade. [perfilLat]/[perfilLng]
   /// são as coordenadas da região cadastrada no perfil, usadas como plano B
@@ -60,6 +66,7 @@ class AnimalProvider extends ChangeNotifier {
       erro = 'Não foi possível carregar os casos. Verifique sua conexão.';
     } finally {
       carregando = false;
+      _carregouAlgumaVez = true;
       notifyListeners();
     }
   }
@@ -102,10 +109,7 @@ class AnimalProvider extends ChangeNotifier {
       final habilitado = await Geolocator.isLocationServiceEnabled();
       if (!habilitado) return null;
 
-      var permissao = await Geolocator.checkPermission();
-      if (permissao == LocationPermission.denied) {
-        permissao = await Geolocator.requestPermission();
-      }
+      final permissao = await pedirPermissaoDeLocalizacao();
       if (permissao == LocationPermission.denied || permissao == LocationPermission.deniedForever) {
         return null;
       }
