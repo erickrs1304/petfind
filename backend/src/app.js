@@ -12,6 +12,8 @@ const sightingRoutes = require('./routes/sightings');
 const notificationRoutes = require('./routes/notifications');
 const deviceRoutes = require('./routes/devices');
 const paginasRoutes = require('./routes/paginas');
+const sequelize = require('./database');
+const { storageResponde } = require('./middleware/upload');
 
 const app = express();
 
@@ -21,6 +23,28 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
+
+// No plano grátis, o Supabase pausa o projeto depois de 7 dias sem uso. A Vercel chama esta rota uma
+// vez por dia (crons no vercel.json): a consulta ao banco e ao Storage mantém o projeto ativo.
+app.get('/manter-ativo', async (req, res) => {
+  const status = { banco: 'ok' };
+  try {
+    await sequelize.query('SELECT 1');
+  } catch (err) {
+    console.error('Banco fora do ar:', err.message);
+    status.banco = 'erro';
+  }
+  try {
+    const fotos = await storageResponde();
+    if (fotos !== null) status.fotos = fotos ? 'ok' : 'erro';
+  } catch (err) {
+    console.error('Storage fora do ar:', err.message);
+    status.fotos = 'erro';
+  }
+  const tudoOk = Object.values(status).every((v) => v === 'ok');
+  res.status(tudoOk ? 200 : 503).json(status);
+});
+
 app.use('/', paginasRoutes);
 
 app.use('/auth', authRoutes);

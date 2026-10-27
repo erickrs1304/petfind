@@ -98,8 +98,23 @@ async function removerFoto(url) {
   }
 }
 
+// Consulta leve ao Storage (dados do bucket), usada pela rota /manter-ativo.
+// Devolve null quando as fotos ficam em disco (sem Storage configurado).
+async function storageResponde() {
+  if (!usaStorage()) return null;
+  const base = process.env.SUPABASE_URL.replace(/\/$/, '');
+  const resposta = await fetch(`${base}/storage/v1/bucket/${BUCKET}`, {
+    headers: {
+      Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}`,
+      apikey: process.env.SUPABASE_SERVICE_KEY,
+    },
+  });
+  return resposta.ok;
+}
+
 module.exports = {
   single: (campo) => [multerUpload.single(campo), enviarParaStorage],
   urlDaFoto,
   removerFoto,
+  storageResponde,
 };
