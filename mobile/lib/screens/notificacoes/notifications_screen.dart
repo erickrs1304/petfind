@@ -6,6 +6,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../data/api_client.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
 import '../../utils/location_helper.dart';
 import '../../widgets/app_snackbar.dart';
@@ -165,7 +166,7 @@ class NotificationsScreen extends StatelessWidget {
         content: TextField(
           controller: controller,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(suffixText: 'km'),
+          decoration: const InputDecoration(suffixText: 'km', helperText: 'De 1 a 20 km'),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
@@ -176,8 +177,8 @@ class NotificationsScreen extends StatelessWidget {
     if (novoRaio == null) return;
     // Aceita vírgula ("2,5"), como se digita no Brasil; valor inválido avisa em vez de sumir.
     final valor = double.tryParse(novoRaio.trim().replaceAll(',', '.'));
-    if (valor == null || valor <= 0) {
-      if (context.mounted) showAppSnackBar(context, 'Informe um raio maior que zero, em km.', type: AppSnackType.error);
+    if (valor == null || valor < kMinNotificationRadiusKm || valor > kMaxNotificationRadiusKm) {
+      if (context.mounted) showAppSnackBar(context, 'Informe um raio entre 1 e 20 km.', type: AppSnackType.error);
       return;
     }
     try {

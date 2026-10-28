@@ -1,3 +1,7 @@
+// RF-008: o raio de alcance das notificações é de 5 km por padrão e o usuário pode ajustá-lo de 1 a 20 km.
+const RAIO_MIN_KM = 1;
+const RAIO_MAX_KM = 20;
+
 function toRad(value) {
   return (value * Math.PI) / 180;
 }
@@ -14,4 +18,9 @@ function haversineDistanceKm(lat1, lng1, lat2, lng2) {
   return R * c;
 }
 
-module.exports = { haversineDistanceKm };
+// Raio considerado no envio dos alertas: um valor salvo antes da faixa existir conta como o limite mais próximo.
+function raioNaFaixaKm(raioKm) {
+  return Math.min(Math.max(raioKm, RAIO_MIN_KM), RAIO_MAX_KM);
+}
+
+module.exports = { haversineDistanceKm, raioNaFaixaKm, RAIO_MIN_KM, RAIO_MAX_KM };

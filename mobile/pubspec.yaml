@@ -1,7 +1,7 @@
 name: petfind
 description: PetFind - plataforma colaborativa com geolocalização e notificações por proximidade para busca de animais perdidos.
 publish_to: "none"
-version: 1.0.3+4
+version: 1.0.4+5
 
 environment:
   sdk: ">=3.4.0 <4.0.0"

@@ -43,8 +43,12 @@ describe('authValidators', () => {
     expect(updateProfileSchema.safeParse({}).success).toBe(true);
   });
 
-  it('updateProfileSchema rejeita raioNotificacaoKm negativo', () => {
+  it('updateProfileSchema aceita raioNotificacaoKm só entre 1 e 20 km', () => {
     expect(updateProfileSchema.safeParse({ raioNotificacaoKm: -5 }).success).toBe(false);
+    expect(updateProfileSchema.safeParse({ raioNotificacaoKm: 0.5 }).success).toBe(false);
+    expect(updateProfileSchema.safeParse({ raioNotificacaoKm: 21 }).success).toBe(false);
+    expect(updateProfileSchema.safeParse({ raioNotificacaoKm: 1 }).success).toBe(true);
+    expect(updateProfileSchema.safeParse({ raioNotificacaoKm: 20 }).success).toBe(true);
   });
 
   it('aceita a escolha de não usar a localização: alertas desligados no cadastro e lat/lng nulos no perfil', () => {

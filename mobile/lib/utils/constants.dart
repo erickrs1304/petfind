@@ -19,6 +19,10 @@ String get kApiBaseUrl {
 
 const double kDefaultNotificationRadiusKm = 5;
 
+// RF-008: o usuário pode ajustar o raio de alcance dos alertas de 1 a 20 km (o servidor valida a mesma faixa).
+const double kMinNotificationRadiusKm = 1;
+const double kMaxNotificationRadiusKm = 20;
+
 // Política de privacidade publicada pela API (exigência da Google Play e da LGPD).
 const String kPoliticaPrivacidadeUrl = 'https://petfind-beryl.vercel.app/privacidade';
 

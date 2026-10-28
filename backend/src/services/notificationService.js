@@ -1,5 +1,5 @@
 const { Usuario, Notificacao, Avistamento } = require('../models');
-const { haversineDistanceKm } = require('../utils/geo');
+const { haversineDistanceKm, raioNaFaixaKm } = require('../utils/geo');
 const { enviarPush } = require('./pushService');
 
 // Dispara notificações de proximidade para um novo caso (RF-004 + RF-008).
@@ -13,7 +13,7 @@ async function notificarNovoCaso(animal) {
     const dentroDoRaio =
       usuario.lat != null &&
       usuario.lng != null &&
-      haversineDistanceKm(usuario.lat, usuario.lng, animal.lat, animal.lng) <= usuario.raioNotificacaoKm;
+      haversineDistanceKm(usuario.lat, usuario.lng, animal.lat, animal.lng) <= raioNaFaixaKm(usuario.raioNotificacaoKm);
 
     if (!ehTutor && (!usuario.notificacoesAtivas || !dentroDoRaio)) continue;
 
@@ -47,7 +47,7 @@ async function notificarNovoAvistamento(avistamento, animal) {
     const dentroDoRaio =
       usuario.lat != null &&
       usuario.lng != null &&
-      haversineDistanceKm(usuario.lat, usuario.lng, avistamento.lat, avistamento.lng) <= usuario.raioNotificacaoKm;
+      haversineDistanceKm(usuario.lat, usuario.lng, avistamento.lat, avistamento.lng) <= raioNaFaixaKm(usuario.raioNotificacaoKm);
 
     if (!ehTutor && (!usuario.notificacoesAtivas || !dentroDoRaio)) continue;
 

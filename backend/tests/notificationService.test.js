@@ -17,6 +17,8 @@ const TUTOR = { id: 1, lat: -17.79, lng: -50.91, raioNotificacaoKm: 5, notificac
 const VIZINHO_PERTO_ATIVO = { id: 2, lat: -17.7935, lng: -50.9188, raioNotificacaoKm: 5, notificacoesAtivas: true };
 const VIZINHO_LONGE = { id: 3, lat: -16.6869, lng: -49.2648, raioNotificacaoKm: 5, notificacoesAtivas: true };
 const VIZINHO_PERTO_INATIVO = { id: 4, lat: -17.7935, lng: -50.9188, raioNotificacaoKm: 5, notificacoesAtivas: false };
+// A cerca de 30 km do caso, com um raio de 50 km salvo antes do limite de 20 km.
+const VIZINHO_RAIO_ACIMA_DO_LIMITE = { id: 5, lat: -17.52, lng: -50.9188, raioNotificacaoKm: 50, notificacoesAtivas: true };
 const ANIMAL = { id: 10, nome: 'Rex', usuarioId: TUTOR.id, lat: -17.7929, lng: -50.9188 };
 
 beforeEach(() => {
@@ -36,8 +38,8 @@ describe('notificarNovoCaso', () => {
     ]);
   });
 
-  it('notifica um vizinho dentro do raio com notificações ativas, mas não um vizinho longe nem um vizinho com notificações desativadas', async () => {
-    Usuario.findAll.mockResolvedValue([TUTOR, VIZINHO_PERTO_ATIVO, VIZINHO_LONGE, VIZINHO_PERTO_INATIVO]);
+  it('notifica um vizinho dentro do raio com notificações ativas, mas não um vizinho longe (mesmo com raio salvo acima de 20 km) nem um vizinho com notificações desativadas', async () => {
+    Usuario.findAll.mockResolvedValue([TUTOR, VIZINHO_PERTO_ATIVO, VIZINHO_LONGE, VIZINHO_PERTO_INATIVO, VIZINHO_RAIO_ACIMA_DO_LIMITE]);
 
     await notificarNovoCaso(ANIMAL);
 
@@ -45,6 +47,7 @@ describe('notificarNovoCaso', () => {
     expect(idsNotificados).toEqual(expect.arrayContaining([TUTOR.id, VIZINHO_PERTO_ATIVO.id]));
     expect(idsNotificados).not.toContain(VIZINHO_LONGE.id);
     expect(idsNotificados).not.toContain(VIZINHO_PERTO_INATIVO.id);
+    expect(idsNotificados).not.toContain(VIZINHO_RAIO_ACIMA_DO_LIMITE.id);
   });
 
   it('não chama bulkCreate quando não há nenhum usuário elegível', async () => {

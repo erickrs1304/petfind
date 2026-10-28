@@ -1,4 +1,5 @@
 const { z } = require('zod');
+const { RAIO_MIN_KM, RAIO_MAX_KM } = require('../utils/geo');
 
 const registerSchema = z.object({
   nome: z.string().min(1).max(100),
@@ -33,7 +34,7 @@ const updateProfileSchema = z.object({
   senha: z.string().min(6).optional(),
   lat: z.number().nullable().optional(),
   lng: z.number().nullable().optional(),
-  raioNotificacaoKm: z.number().positive().optional(),
+  raioNotificacaoKm: z.number().min(RAIO_MIN_KM).max(RAIO_MAX_KM).optional(),
   notificacoesAtivas: z.boolean().optional(),
 });
 
