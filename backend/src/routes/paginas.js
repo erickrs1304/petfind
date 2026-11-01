@@ -31,10 +31,15 @@ ${corpo}
 }
 
 const privacidade = pagina('Política de Privacidade', `
-<p class="data">Última atualização: outubro de 2026</p>
+<p class="data">Última atualização: novembro de 2026</p>
 <p>O PetFind é um aplicativo colaborativo para ajudar a encontrar animais perdidos, desenvolvido como Trabalho
 Final de Curso. Esta política explica quais dados pessoais o aplicativo trata, para quê, onde ficam guardados e
 quando são apagados, conforme a Lei Geral de Proteção de Dados (Lei nº 13.709/2018).</p>
+
+<h2>Responsáveis</h2>
+<p>O PetFind foi desenvolvido por Erick Furtado da Silva e João Victor Fiuza Santos, no Trabalho Final de Curso
+de Engenharia de Software da Universidade de Rio Verde (UniRV), e são eles os responsáveis pelo tratamento dos
+dados descritos nesta política.</p>
 
 <h2>Dados que tratamos e para quê</h2>
 <ul>
